@@ -8,6 +8,14 @@
 
 // VercelのServerless Function用のエクスポート
 export default async function handler(req, res) {
+  // デバッグログの開始
+  console.log('🚀 Chat API called:', {
+    method: req.method,
+    url: req.url,
+    headers: req.headers,
+    body: req.body ? JSON.stringify(req.body).substring(0, 200) + '...' : 'No body'
+  });
+
   // CORS設定：フロントエンドからのリクエストを許可
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -15,12 +23,14 @@ export default async function handler(req, res) {
 
   // OPTIONSリクエスト（プリフライト）への対応
   if (req.method === 'OPTIONS') {
+    console.log('✅ CORS preflight request handled');
     res.status(200).end();
     return;
   }
 
   // POSTリクエストのみを許可
   if (req.method !== 'POST') {
+    console.log('❌ Method not allowed:', req.method);
     res.status(405).json({ 
       error: 'Method not allowed. Only POST requests are supported.' 
     });
@@ -31,8 +41,11 @@ export default async function handler(req, res) {
     // リクエストボディからメッセージとフォームデータを取得
     const { message, formData, context } = req.body;
 
+    console.log('📝 Request data:', { message, formData, context });
+
     // メッセージが存在するかチェック
     if (!message || typeof message !== 'string') {
+      console.log('❌ Invalid message:', message);
       res.status(400).json({ 
         error: 'Message is required and must be a string.' 
       });
@@ -42,16 +55,22 @@ export default async function handler(req, res) {
     // OpenAI APIキーを環境変数から取得
     const openaiApiKey = process.env.OPENAI_API_KEY;
     
+    console.log('🔑 API Key status:', openaiApiKey ? 'Present' : 'Missing');
+    
     if (!openaiApiKey) {
-      console.error('OpenAI API key is not configured');
+      console.error('❌ OpenAI API key is not configured');
       res.status(500).json({ 
         error: 'AI service is not configured. Please contact the administrator.' 
       });
       return;
     }
 
+    console.log('🤖 Generating AI response...');
+    
     // AI応答を生成
     const aiResponse = await generateAIResponse(message, formData, openaiApiKey);
+
+    console.log('✅ AI Response generated:', aiResponse.substring(0, 100) + '...');
 
     // 成功レスポンスを返す
     res.status(200).json({
@@ -62,7 +81,7 @@ export default async function handler(req, res) {
 
   } catch (error) {
     // エラーログを出力
-    console.error('Chat API Error:', error);
+    console.error('💥 Chat API Error:', error);
 
     // エラーレスポンスを返す
     res.status(500).json({

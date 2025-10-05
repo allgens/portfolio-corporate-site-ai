@@ -391,8 +391,15 @@ class ChatbotAssistant {
         };
 
         try {
-            console.log('Sending request to AI API:', { message, formData });
+            console.log('🤖 AI API Request:', { 
+                endpoint: this.apiEndpoint, 
+                message: message.substring(0, 50) + '...', 
+                formData: formData 
+            });
 
+            // デバッグ用：APIエンドポイントの存在確認
+            console.log('🔍 Checking API endpoint availability...');
+            
             // VercelのAPIエンドポイントにPOSTリクエストを送信
             const response = await fetch(this.apiEndpoint, {
                 method: 'POST',
@@ -402,29 +409,45 @@ class ChatbotAssistant {
                 body: JSON.stringify(requestBody)
             });
 
+            console.log('📡 API Response Status:', response.status, response.statusText);
+
             // レスポンスのステータスをチェック
             if (!response.ok) {
                 const errorText = await response.text();
-                console.error('API Error Response:', response.status, errorText);
+                console.error('❌ API Error Response:', response.status, errorText);
+                
+                // 詳細なエラー情報を表示
+                this.showErrorMessage(`API接続エラー (${response.status}): ${errorText.substring(0, 100)}...`);
                 throw new Error(`API request failed with status ${response.status}: ${errorText}`);
             }
 
             // レスポンスデータを取得
             const data = await response.json();
-            console.log('AI API Response:', data);
+            console.log('✅ AI API Response:', data);
 
             // 成功レスポンスかチェック
             if (data.success && data.message) {
+                console.log('🎉 AI Response received:', data.message.substring(0, 100) + '...');
                 return data.message;
             } else {
+                console.error('❌ Invalid response format:', data);
                 throw new Error('Invalid response format from AI API');
             }
 
         } catch (error) {
-            console.warn('AI API unavailable, using fallback:', error);
+            console.error('💥 AI API Error:', error);
             
-            // エラーメッセージをユーザーに表示
-            this.showErrorMessage('AI応答の取得中にエラーが発生しました。フォールバック応答を表示します。');
+            // エラーの種類に応じてメッセージを変更
+            let errorMessage = 'AI応答の取得中にエラーが発生しました。';
+            if (error.message.includes('fetch')) {
+                errorMessage = 'ネットワークエラー: APIサーバーに接続できません。';
+            } else if (error.message.includes('404')) {
+                errorMessage = 'APIエンドポイントが見つかりません。Vercelの設定を確認してください。';
+            } else if (error.message.includes('500')) {
+                errorMessage = 'サーバーエラー: OpenAI APIキーの設定を確認してください。';
+            }
+            
+            this.showErrorMessage(errorMessage + ' フォールバック応答を表示します。');
             
             // フォールバック応答（APIが利用できない場合）
             return this.getFallbackResponse(message, formData);
@@ -435,6 +458,8 @@ class ChatbotAssistant {
      * フォールバック応答（AI APIが利用できない場合）
      */
     getFallbackResponse(message, formData) {
+        console.log('🔄 Using fallback response for:', message);
+        
         // ローカルのAI関数があれば使用
         if (typeof window.ChatbotAI !== 'undefined') {
             return window.ChatbotAI.generateFallbackResponse(message, formData);
@@ -508,8 +533,76 @@ class ChatbotAssistant {
 何かご不明な点がございましたら、お気軽にお尋ねください！`;
         }
 
-        // デフォルト応答
-        return `ありがとうございます！お問い合わせ内容を確認いたします。
+        // 挨拶パターン
+        if (lowerMessage.includes('こんにちは') || lowerMessage.includes('はじめまして') || lowerMessage.includes('初めまして')) {
+            return `こんにちは！allgensのAIアシスタントです 😊
+
+お問い合わせフォームの入力をお手伝いさせていただきます。
+
+どのようなご用件でしょうか？サービスについてのご質問や、フォーム入力でお困りのことがあれば、お気軽にお聞かせください！`;
+        }
+
+        // 感謝の表現
+        if (lowerMessage.includes('ありがとう') || lowerMessage.includes('助かりました') || lowerMessage.includes('参考になりました')) {
+            return `どういたしまして！お役に立てて嬉しいです 😊
+
+他にもご質問やお困りのことがございましたら、いつでもお声かけください。
+
+フォームの入力が完了しましたら、ぜひ送信してくださいね！`;
+        }
+
+        // 時間・スケジュール関連
+        if (lowerMessage.includes('いつ') || lowerMessage.includes('期間') || lowerMessage.includes('スケジュール') || lowerMessage.includes('いつまで')) {
+            return `プロジェクトのスケジュールについてお答えします！
+
+⏰ **導入期間の目安**
+- 小規模プロジェクト: 1-3ヶ月
+- 中規模プロジェクト: 3-6ヶ月
+- 大規模プロジェクト: 6ヶ月以上
+
+📅 **スケジュールの流れ**
+1. 初回相談（無料）
+2. 詳細ヒアリング
+3. 提案書作成
+4. 契約・プロジェクト開始
+5. 開発・導入
+6. 運用開始・サポート
+
+💡 **お客様のご都合に合わせて調整可能**
+- 段階的な導入も可能
+- 既存システムとの連携も考慮
+
+まずは初回相談で、お客様のご要望をお聞かせください！`;
+        }
+
+        // 技術的な質問
+        if (lowerMessage.includes('技術') || lowerMessage.includes('システム') || lowerMessage.includes('開発') || lowerMessage.includes('プログラミング')) {
+            return `技術的なご質問にお答えします！
+
+💻 **開発技術**
+- フロントエンド: React, Vue.js, Angular
+- バックエンド: Node.js, Python, PHP, Java
+- データベース: MySQL, PostgreSQL, MongoDB
+- クラウド: AWS, Azure, GCP
+
+🤖 **AI・機械学習**
+- 自然言語処理
+- 画像認識
+- 予測分析
+- レコメンデーションシステム
+
+⚙️ **システム運用**
+- 監視・ログ管理
+- セキュリティ対策
+- パフォーマンス最適化
+- バックアップ・災害対策
+
+お客様のご要望に応じて、最適な技術スタックをご提案いたします！`;
+        }
+
+        // デフォルト応答（より自然で多様に）
+        const responses = [
+            `ありがとうございます！お問い合わせ内容を確認いたします。
 
 お客様のご要望に合わせて、最適なソリューションをご提案いたします。
 
@@ -519,11 +612,38 @@ class ChatbotAssistant {
 • 料金・連絡先情報の案内
 • フォーム入力のサポート
 
-具体的なご質問やご不明な点がございましたら、お気軽にお尋ねください。初回相談は無料で承っております。
+具体的なご質問やご不明な点がございましたら、お気軽にお尋ねください。初回相談は無料で承っております。`,
 
-📞 **直接のお問い合わせも可能です：**
-• 電話: 03-1234-5678
-• メール: info@allgens.co.jp`;
+            `お問い合わせいただき、ありがとうございます！
+
+allgensでは、お客様のビジネス課題を解決するための様々なサービスを提供しています。
+
+🤖 **AI導入コンサルティング**で業務効率化
+⚙️ **システム運用サポート**で安定稼働
+🛒 **ECマーケティング支援**で売上向上
+💻 **システム開発**でカスタムソリューション
+
+どのようなお悩みがございますか？お気軽にご相談ください！`,
+
+            `こんにちは！allgensのAIアシスタントです。
+
+お客様のビジネスをサポートするために、いつでもお手伝いさせていただきます。
+
+📝 **フォーム入力でお困りのことがあれば**
+• 下のクイックアクションボタンをご利用ください
+• メッセージ下書きの自動生成も可能です
+
+💬 **ご質問がございましたら**
+• サービス内容について
+• 料金・スケジュールについて
+• 技術的なご相談
+
+何でもお気軽にお聞かせください！`
+        ];
+
+        // ランダムに応答を選択
+        const randomIndex = Math.floor(Math.random() * responses.length);
+        return responses[randomIndex];
     }
 
     /**
@@ -632,6 +752,7 @@ class ChatbotAssistant {
                 <i class="fas fa-robot"></i>
             </div>
             <div class="typing-indicator">
+                <div class="typing-text">AIが考え中です</div>
                 <div class="typing-dots">
                     <div class="typing-dot"></div>
                     <div class="typing-dot"></div>
