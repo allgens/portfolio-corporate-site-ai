@@ -45,18 +45,24 @@ class ChatbotAssistant {
                         <span>オンライン</span>
                     </div>
                 </div>
-                <button class="chatbot-close" id="chatbot-close">
-                    <i class="fas fa-times"></i>
-                </button>
+                <div class="chatbot-controls">
+                    <button class="chatbot-restart" id="chatbot-restart" title="新しい会話を開始">
+                        <i class="fas fa-redo"></i>
+                    </button>
+                    <button class="chatbot-close" id="chatbot-close" title="チャットボットを閉じる">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
             </div>
             <div class="chatbot-messages" id="chatbot-messages">
                 <!-- メッセージがここに追加されます -->
             </div>
             <div class="quick-actions" id="quick-actions">
-                <button class="quick-action-btn" data-action="service-help">サービス選択のヘルプ</button>
-                <button class="quick-action-btn" data-action="draft-message">メッセージ下書き</button>
-                <button class="quick-action-btn" data-action="pricing-info">料金について</button>
-                <button class="quick-action-btn" data-action="contact-info">連絡先情報</button>
+                <button class="quick-action-btn" data-action="service-help">🤖 サービス選択のヘルプ</button>
+                <button class="quick-action-btn" data-action="draft-message">✍️ メッセージ下書き</button>
+                <button class="quick-action-btn" data-action="pricing-info">💰 料金について</button>
+                <button class="quick-action-btn" data-action="contact-info">📞 連絡先情報</button>
+                <button class="quick-action-btn" data-action="help">❓ 使い方ガイド</button>
             </div>
             <div class="chatbot-input-area">
                 <div class="chatbot-input-container">
@@ -133,6 +139,11 @@ class ChatbotAssistant {
         // 閉じるボタン
         document.getElementById('chatbot-close').addEventListener('click', () => {
             this.closeChatbot();
+        });
+
+        // 再起動ボタン
+        document.getElementById('chatbot-restart').addEventListener('click', () => {
+            this.restartChatbot();
         });
 
         // フローティングボタン（モバイル用）
@@ -259,7 +270,22 @@ class ChatbotAssistant {
      */
     addInitialMessage() {
         if (this.messages.length === 0) {
-            this.addMessage('ai', 'こんにちは、AIアシスタントのallgensです。どんなご用件でしょうか？');
+            this.addMessage('ai', `こんにちは！AIアシスタントのallgensです 🤖
+
+お問い合わせフォームの入力をお手伝いします！
+
+📝 **こんなことができます：**
+• サービス選択のアドバイス
+• メッセージの下書き作成
+• 料金・連絡先情報の案内
+• フォーム入力のサポート
+
+💡 **使い方：**
+• メッセージを入力してEnterキーまたは送信ボタンをクリック
+• 下のクイックアクションボタンをクリック
+• フォームを入力すると自動でサポートします
+
+何かお手伝いできることはありますか？`);
         }
     }
 
@@ -445,11 +471,21 @@ class ChatbotAssistant {
         }
 
         // デフォルト応答
-        return `ありがとうございます。お問い合わせ内容を確認いたします。
+        return `ありがとうございます！お問い合わせ内容を確認いたします。
 
 お客様のご要望に合わせて、最適なソリューションをご提案いたします。
 
-具体的なご質問やご不明な点がございましたら、お気軽にお尋ねください。初回相談は無料で承っております。`;
+💡 **お手伝いできること：**
+• サービス選択のアドバイス
+• メッセージの下書き作成
+• 料金・連絡先情報の案内
+• フォーム入力のサポート
+
+具体的なご質問やご不明な点がございましたら、お気軽にお尋ねください。初回相談は無料で承っております。
+
+📞 **直接のお問い合わせも可能です：**
+• 電話: 03-1234-5678
+• メール: info@allgens.co.jp`;
     }
 
     /**
@@ -473,6 +509,9 @@ class ChatbotAssistant {
             case 'contact-info':
                 this.addMessage('user', '連絡先情報を教えてください');
                 this.sendMessage();
+                break;
+            case 'help':
+                this.showHelpGuide();
                 break;
         }
     }
@@ -717,6 +756,54 @@ class ChatbotAssistant {
         const messagesContainer = document.getElementById('chatbot-messages');
         messagesContainer.innerHTML = '';
         this.addInitialMessage();
+    }
+
+    /**
+     * チャットボットの再起動
+     */
+    restartChatbot() {
+        // 確認ダイアログ
+        if (confirm('会話履歴をクリアして新しい会話を開始しますか？')) {
+            this.clearHistory();
+            this.scrollToBottom();
+            
+            // 成功メッセージを一時的に表示
+            const messagesContainer = document.getElementById('chatbot-messages');
+            const successMsg = document.createElement('div');
+            successMsg.className = 'success-message';
+            successMsg.innerHTML = '✅ 新しい会話を開始しました！';
+            messagesContainer.appendChild(successMsg);
+            
+            setTimeout(() => {
+                successMsg.remove();
+            }, 3000);
+        }
+    }
+
+    /**
+     * ヘルプガイドの表示
+     */
+    showHelpGuide() {
+        this.addMessage('ai', `📖 **AIチャットボット使い方ガイド**
+
+🤖 **基本操作**
+• メッセージを入力してEnterキーまたは📤ボタンで送信
+• 下のクイックアクションボタンをクリック
+• フォームを入力すると自動でサポートします
+
+💡 **主な機能**
+• **🤖 サービス選択のヘルプ**: 最適なサービスを提案
+• **✍️ メッセージ下書き**: 自動でメッセージを作成
+• **💰 料金について**: 料金プランや見積もりの案内
+• **📞 連絡先情報**: 電話番号やメールアドレス
+• **🔄 再起動**: 右上の🔄ボタンで新しい会話を開始
+
+🎯 **便利な使い方**
+• フォームの入力フィールドを変更すると自動でサポート
+• よくある質問はクイックアクションから
+• 会話履歴は自動で保存されます
+
+何かご不明な点がございましたら、お気軽にお尋ねください！`);
     }
 }
 
