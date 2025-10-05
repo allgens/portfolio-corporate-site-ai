@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>チャットボット デバッグページ</title>
+    <link rel="stylesheet" href="./css/style.css">
+    <link rel="stylesheet" href="./css/chatbot.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .debug-panel {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            background: #1e293b;
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 12px;
+            max-width: 400px;
+            z-index: 10000;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .debug-button {
+            background: #38BDF8;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 4px;
+            font-size: 12px;
+        }
+        .debug-button:hover {
+            background: #0EA5E9;
+        }
+        .debug-log {
+            background: #0f172a;
+            padding: 8px;
+            margin: 4px 0;
+            border-radius: 4px;
+            border-left: 3px solid #38BDF8;
+        }
+        .debug-error {
+            border-left-color: #ef4444;
+            background: #1f2937;
+        }
+        .debug-success {
+            border-left-color: #10b981;
+            background: #064e3b;
+        }
+    </style>
+</head>
+<body>
+    <!-- デバッグパネル -->
+    <div class="debug-panel" id="debugPanel">
+        <h3>🔧 チャットボット デバッグ</h3>
+        <div id="debugLogs"></div>
+        <div style="margin-top: 10px;">
+            <button class="debug-button" onclick="testApiEndpoint()">APIテスト</button>
+            <button class="debug-button" onclick="testChatbotInit()">チャットボット初期化テスト</button>
+            <button class="debug-button" onclick="testFormIntegration()">フォーム連携テスト</button>
+            <button class="debug-button" onclick="clearLogs()">ログクリア</button>
+        </div>
+    </div>
+
+    <!-- チャットボットテストエリア -->
+    <div style="margin-top: 200px; padding: 20px;">
+        <h1>チャットボット デバッグページ</h1>
+        <p>このページでチャットボットの動作をテストできます。</p>
+        
+        <!-- フォーム連携テスト用の簡単なフォーム -->
+        <div style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <h3>フォーム連携テスト</h3>
+            <input type="text" id="name" placeholder="お名前" style="margin: 5px; padding: 8px; width: 200px;">
+            <input type="text" id="company" placeholder="会社名" style="margin: 5px; padding: 8px; width: 200px;">
+            <input type="email" id="email" placeholder="メールアドレス" style="margin: 5px; padding: 8px; width: 200px;">
+            <select id="service" style="margin: 5px; padding: 8px; width: 200px;">
+                <option value="">サービスを選択</option>
+                <option value="ai">AI導入コンサルティング</option>
+                <option value="system">システム運用サポート</option>
+                <option value="ec">ECマーケティング支援</option>
+                <option value="development">システム開発</option>
+            </select>
+            <textarea id="message" placeholder="お問い合わせ内容" style="margin: 5px; padding: 8px; width: 400px; height: 100px;"></textarea>
+        </div>
+    </div>
+
+    <!-- チャットボット用のコンテナ -->
+    <div id="chatbot-desktop" style="position: fixed; bottom: 20px; right: 20px; width: 400px; height: 600px;"></div>
+
+    <!-- JavaScript -->
+    <script src="./js/main.js"></script>
+    <script src="./js/chatbot.js"></script>
+    
+    <script>
+        // デバッグ用のログ関数
+        function addDebugLog(message, type = 'info') {
+            const logs = document.getElementById('debugLogs');
+            const logDiv = document.createElement('div');
+            logDiv.className = `debug-log ${type === 'error' ? 'debug-error' : type === 'success' ? 'debug-success' : ''}`;
+            logDiv.innerHTML = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logs.appendChild(logDiv);
+            logs.scrollTop = logs.scrollHeight;
+        }
+
+        function clearLogs() {
+            document.getElementById('debugLogs').innerHTML = '';
+        }
+
+        // APIエンドポイントのテスト
+        async function testApiEndpoint() {
+            addDebugLog('🔍 APIエンドポイントをテスト中...', 'info');
+            
+            try {
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        message: 'テストメッセージ',
+                        formData: {},
+                        context: 'debug_test'
+                    })
+                });
+
+                addDebugLog(`📡 API Status: ${response.status} ${response.statusText}`, response.ok ? 'success' : 'error');
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    addDebugLog(`✅ API Response: ${JSON.stringify(data).substring(0, 100)}...`, 'success');
+                } else {
+                    const errorText = await response.text();
+                    addDebugLog(`❌ API Error: ${errorText}`, 'error');
+                }
+            } catch (error) {
+                addDebugLog(`💥 Fetch Error: ${error.message}`, 'error');
+            }
+        }
+
+        // チャットボット初期化のテスト
+        function testChatbotInit() {
+            addDebugLog('🤖 チャットボット初期化をテスト中...', 'info');
+            
+            // ChatbotAssistantクラスの存在確認
+            if (typeof ChatbotAssistant !== 'undefined') {
+                addDebugLog('✅ ChatbotAssistant クラスが存在します', 'success');
+            } else {
+                addDebugLog('❌ ChatbotAssistant クラスが見つかりません', 'error');
+                return;
+            }
+
+            // チャットボットインスタンスの確認
+            if (window.chatbot) {
+                addDebugLog('✅ チャットボットインスタンスが作成されています', 'success');
+                addDebugLog(`📊 メッセージ数: ${window.chatbot.messages.length}`, 'info');
+            } else {
+                addDebugLog('❌ チャットボットインスタンスが作成されていません', 'error');
+            }
+
+            // DOM要素の確認
+            const container = document.getElementById('chatbot-container');
+            if (container) {
+                addDebugLog('✅ チャットボットコンテナが存在します', 'success');
+            } else {
+                addDebugLog('❌ チャットボットコンテナが見つかりません', 'error');
+            }
+        }
+
+        // フォーム連携のテスト
+        function testFormIntegration() {
+            addDebugLog('📝 フォーム連携をテスト中...', 'info');
+            
+            if (window.chatbot) {
+                const formData = window.chatbot.getFormData();
+                addDebugLog(`📊 フォームデータ: ${JSON.stringify(formData)}`, 'info');
+                
+                // フォームフィールドの存在確認
+                const fields = ['name', 'company', 'email', 'service', 'message'];
+                fields.forEach(field => {
+                    const element = document.getElementById(field);
+                    if (element) {
+                        addDebugLog(`✅ ${field} フィールドが存在します`, 'success');
+                    } else {
+                        addDebugLog(`❌ ${field} フィールドが見つかりません`, 'error');
+                    }
+                });
+            } else {
+                addDebugLog('❌ チャットボットインスタンスがありません', 'error');
+            }
+        }
+
+        // ページ読み込み時の自動テスト
+        window.addEventListener('load', () => {
+            addDebugLog('🚀 デバッグページが読み込まれました', 'info');
+            
+            // 少し遅延してからテストを実行
+            setTimeout(() => {
+                testChatbotInit();
+                testFormIntegration();
+            }, 1000);
+        });
+
+        // コンソールログをキャプチャ
+        const originalLog = console.log;
+        const originalError = console.error;
+        const originalWarn = console.warn;
+
+        console.log = function(...args) {
+            addDebugLog(`📝 LOG: ${args.join(' ')}`, 'info');
+            originalLog.apply(console, args);
+        };
+
+        console.error = function(...args) {
+            addDebugLog(`❌ ERROR: ${args.join(' ')}`, 'error');
+            originalError.apply(console, args);
+        };
+
+        console.warn = function(...args) {
+            addDebugLog(`⚠️ WARN: ${args.join(' ')}`, 'info');
+            originalWarn.apply(console, args);
+        };
+    </script>
+</body>
+</html>
