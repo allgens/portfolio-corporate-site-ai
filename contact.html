@@ -23,6 +23,7 @@
     
     <!-- CSS -->
     <link rel="stylesheet" href="./css/style.css">
+    <link rel="stylesheet" href="./css/chatbot.css">
     
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -82,15 +83,20 @@
 
         <!-- Contact Form -->
         <section class="section">
-            <div class="container" style="max-width: 800px;">
-                <div style="background: white; border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); padding: 48px; border: 1px solid #E2E8F0;">
-                    <div style="text-align: center; margin-bottom: 32px;">
-                        <h2 style="font-size: 2rem; font-weight: 700; color: #38BDF8; margin-bottom: 16px;">お問い合わせフォーム</h2>
-                        <p style="color: #64748B; line-height: 1.6;">
-                            お客様のビジネス課題について、無料でご相談を承ります。<br>
-                            お問い合わせ内容を入力し、送信ボタンをクリックしてください。
-                        </p>
-                    </div>
+            <div class="container" style="max-width: 1200px;">
+                <div style="text-align: center; margin-bottom: 48px;">
+                    <h2 style="font-size: 2rem; font-weight: 700; color: #38BDF8; margin-bottom: 16px;">お問い合わせフォーム</h2>
+                    <p style="color: #64748B; line-height: 1.6;">
+                        お客様のビジネス課題について、無料でご相談を承ります。<br>
+                        お問い合わせ内容を入力し、送信ボタンをクリックしてください。<br>
+                        <span style="color: #38BDF8; font-weight: 500;">💬 AIアシスタントが入力をお手伝いします</span>
+                    </p>
+                </div>
+                
+                <!-- フォームとチャットボットのコンテナ -->
+                <div style="display: grid; grid-template-columns: 1fr 400px; gap: 32px; align-items: start;">
+                    <!-- フォーム部分 -->
+                    <div style="background: white; border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); padding: 48px; border: 1px solid #E2E8F0;">
                     
                     <form action="https://formspree.io/f/YOUR_FORM_ID" method="POST" id="contactForm" style="display: grid; gap: 24px;">
                         <div style="display: grid; grid-template-columns: 1fr; gap: 24px;">
@@ -177,7 +183,25 @@
                             </button>
                         </div>
                     </form>
+                    </div>
+                    
+                    <!-- チャットボット部分（デスクトップ表示） -->
+                    <div id="chatbot-desktop" style="position: sticky; top: 100px;">
+                        <!-- チャットボットはJavaScriptで動的に生成されます -->
+                    </div>
                 </div>
+                
+                <!-- モバイル用レスポンシブ対応 -->
+                <style>
+                    @media (max-width: 768px) {
+                        .container > div:first-of-type {
+                            grid-template-columns: 1fr !important;
+                        }
+                        #chatbot-desktop {
+                            display: none !important;
+                        }
+                    }
+                </style>
             </div>
         </section>
 
@@ -364,5 +388,6 @@
 
     <!-- JavaScript -->
     <script src="./js/main.js"></script>
+    <script src="./js/chatbot.js"></script>
 </body>
 </html>
