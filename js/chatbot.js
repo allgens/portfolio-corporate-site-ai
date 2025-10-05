@@ -8,7 +8,7 @@ class ChatbotAssistant {
         this.isOpen = false;
         this.isLoading = false;
         this.messages = [];
-        this.apiEndpoint = '/api/chat'; // 仮のAPIエンドポイント
+        this.apiEndpoint = '/api/chat'; // Vercel APIエンドポイント
         this.storageKey = 'chatbot_messages';
         
         this.init();
@@ -378,10 +378,12 @@ class ChatbotAssistant {
 
     /**
      * AI応答の取得
+     * VercelのAPIエンドポイントを呼び出してAI応答を生成
      */
     async getAIResponse(message) {
         const formData = this.getFormData();
         
+        // APIリクエスト用のデータを準備
         const requestBody = {
             message: message,
             formData: formData,
@@ -389,12 +391,9 @@ class ChatbotAssistant {
         };
 
         try {
-            // まずローカルのAI関数を試行
-            if (typeof window.ChatbotAI !== 'undefined') {
-                return await window.ChatbotAI.generateAIResponse(message, formData);
-            }
+            console.log('Sending request to AI API:', { message, formData });
 
-            // APIエンドポイントを試行
+            // VercelのAPIエンドポイントにPOSTリクエストを送信
             const response = await fetch(this.apiEndpoint, {
                 method: 'POST',
                 headers: {
@@ -403,14 +402,30 @@ class ChatbotAssistant {
                 body: JSON.stringify(requestBody)
             });
 
+            // レスポンスのステータスをチェック
             if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+                const errorText = await response.text();
+                console.error('API Error Response:', response.status, errorText);
+                throw new Error(`API request failed with status ${response.status}: ${errorText}`);
             }
 
+            // レスポンスデータを取得
             const data = await response.json();
-            return data.message || '申し訳ございません。応答を生成できませんでした。';
+            console.log('AI API Response:', data);
+
+            // 成功レスポンスかチェック
+            if (data.success && data.message) {
+                return data.message;
+            } else {
+                throw new Error('Invalid response format from AI API');
+            }
+
         } catch (error) {
             console.warn('AI API unavailable, using fallback:', error);
+            
+            // エラーメッセージをユーザーに表示
+            this.showErrorMessage('AI応答の取得中にエラーが発生しました。フォールバック応答を表示します。');
+            
             // フォールバック応答（APIが利用できない場合）
             return this.getFallbackResponse(message, formData);
         }
@@ -846,6 +861,30 @@ class ChatbotAssistant {
 • 会話履歴は自動で保存されます
 
 何かご不明な点がございましたら、お気軽にお尋ねください！`);
+    }
+
+    /**
+     * エラーメッセージの表示
+     * API接続エラーなどの一時的なメッセージを表示
+     */
+    showErrorMessage(message) {
+        const messagesContainer = document.getElementById('chatbot-messages');
+        const errorMsg = document.createElement('div');
+        errorMsg.className = 'error-message';
+        errorMsg.innerHTML = `⚠️ ${message}`;
+        
+        // メッセージの最後に追加
+        messagesContainer.appendChild(errorMsg);
+        
+        // 3秒後に自動削除
+        setTimeout(() => {
+            if (errorMsg.parentNode) {
+                errorMsg.remove();
+            }
+        }, 3000);
+        
+        // 最下部にスクロール
+        this.scrollToBottom();
     }
 
     /**
