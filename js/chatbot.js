@@ -104,6 +104,9 @@ class ChatbotAssistant {
         }
         document.body.appendChild(floatingBtn);
         document.body.appendChild(modal);
+        
+        // チャットボット再開用のフローティングボタン（デスクトップ用）
+        this.createReopenButton();
     }
 
     /**
@@ -386,6 +389,12 @@ class ChatbotAssistant {
         };
 
         try {
+            // まずローカルのAI関数を試行
+            if (typeof window.ChatbotAI !== 'undefined') {
+                return await window.ChatbotAI.generateAIResponse(message, formData);
+            }
+
+            // APIエンドポイントを試行
             const response = await fetch(this.apiEndpoint, {
                 method: 'POST',
                 headers: {
@@ -401,9 +410,23 @@ class ChatbotAssistant {
             const data = await response.json();
             return data.message || '申し訳ございません。応答を生成できませんでした。';
         } catch (error) {
-            // モック応答（APIが利用できない場合）
-            return this.getMockResponse(message, formData);
+            console.warn('AI API unavailable, using fallback:', error);
+            // フォールバック応答（APIが利用できない場合）
+            return this.getFallbackResponse(message, formData);
         }
+    }
+
+    /**
+     * フォールバック応答（AI APIが利用できない場合）
+     */
+    getFallbackResponse(message, formData) {
+        // ローカルのAI関数があれば使用
+        if (typeof window.ChatbotAI !== 'undefined') {
+            return window.ChatbotAI.generateFallbackResponse(message, formData);
+        }
+        
+        // 基本的なフォールバック応答
+        return this.getMockResponse(message, formData);
     }
 
     /**
@@ -527,6 +550,30 @@ class ChatbotAssistant {
             return;
         }
 
+        let draft;
+        
+        // ローカルのAI関数があれば使用
+        if (typeof window.ChatbotAI !== 'undefined') {
+            draft = window.ChatbotAI.generateMessageDraft(formData);
+        } else {
+            // 基本的な下書き生成
+            draft = this.generateBasicDraft(formData);
+        }
+
+        // フォームのメッセージ欄に挿入
+        const messageField = document.getElementById('message');
+        if (messageField) {
+            messageField.value = draft;
+            messageField.focus();
+        }
+
+        this.addMessage('ai', 'メッセージの下書きを作成しました。フォームの「お問い合わせ内容」欄に挿入いたします。必要に応じて編集してください。');
+    }
+
+    /**
+     * 基本的な下書き生成
+     */
+    generateBasicDraft(formData) {
         let draft = `お世話になっております。`;
         
         if (formData.company) {
@@ -554,14 +601,7 @@ class ChatbotAssistant {
         draft += `\nご連絡いただけますと幸いです。`;
         draft += `\n\n何卒よろしくお願いいたします。`;
 
-        // フォームのメッセージ欄に挿入
-        const messageField = document.getElementById('message');
-        if (messageField) {
-            messageField.value = draft;
-            messageField.focus();
-        }
-
-        this.addMessage('ai', 'メッセージの下書きを作成しました。フォームの「お問い合わせ内容」欄に挿入いたします。必要に応じて編集してください。');
+        return draft;
     }
 
     /**
@@ -672,6 +712,8 @@ class ChatbotAssistant {
             if (container) {
                 container.style.display = 'none';
             }
+            // 再開ボタンを表示
+            this.showReopenButton();
         }
     }
 
@@ -804,6 +846,56 @@ class ChatbotAssistant {
 • 会話履歴は自動で保存されます
 
 何かご不明な点がございましたら、お気軽にお尋ねください！`);
+    }
+
+    /**
+     * 再開ボタンの作成
+     */
+    createReopenButton() {
+        const reopenBtn = document.createElement('button');
+        reopenBtn.className = 'chatbot-reopen-btn';
+        reopenBtn.id = 'chatbot-reopen-btn';
+        reopenBtn.innerHTML = `
+            <div class="reopen-btn-content">
+                <i class="fas fa-comments"></i>
+                <span>AIアシスタント</span>
+            </div>
+            <div class="reopen-btn-pulse"></div>
+        `;
+        
+        reopenBtn.addEventListener('click', () => {
+            this.openChatbot();
+            this.hideReopenButton();
+        });
+        
+        document.body.appendChild(reopenBtn);
+        
+        // 最初は非表示
+        reopenBtn.style.display = 'none';
+    }
+
+    /**
+     * 再開ボタンの表示
+     */
+    showReopenButton() {
+        const reopenBtn = document.getElementById('chatbot-reopen-btn');
+        if (reopenBtn) {
+            setTimeout(() => {
+                reopenBtn.style.display = 'flex';
+                reopenBtn.classList.add('animate-in');
+            }, 500); // 少し遅延させて自然な表示
+        }
+    }
+
+    /**
+     * 再開ボタンの非表示
+     */
+    hideReopenButton() {
+        const reopenBtn = document.getElementById('chatbot-reopen-btn');
+        if (reopenBtn) {
+            reopenBtn.classList.remove('animate-in');
+            reopenBtn.style.display = 'none';
+        }
     }
 }
 
