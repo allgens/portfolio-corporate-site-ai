@@ -61,8 +61,16 @@ export default async function handler(req, res) {
     
     if (!openaiApiKey) {
       console.error('❌ OpenAI API key is not configured');
-      res.status(500).json({ 
-        error: 'AI service is not configured. Please contact the administrator.' 
+      console.log('🔄 Falling back to mock response...');
+      
+      // フォールバック：モック応答を返す
+      const mockResponse = generateMockResponse(message, formData);
+      
+      res.status(200).json({
+        message: mockResponse,
+        timestamp: new Date().toISOString(),
+        success: true,
+        source: 'mock'
       });
       return;
     }
@@ -84,13 +92,29 @@ export default async function handler(req, res) {
   } catch (error) {
     // エラーログを出力
     console.error('💥 Chat API Error:', error);
+    console.log('🔄 Attempting fallback to mock response...');
 
-    // エラーレスポンスを返す
-    res.status(500).json({
-      error: 'Failed to generate AI response. Please try again later.',
-      timestamp: new Date().toISOString(),
-      success: false
-    });
+    try {
+      // フォールバック：モック応答を試行
+      const { message, formData } = req.body;
+      const mockResponse = generateMockResponse(message, formData);
+      
+      res.status(200).json({
+        message: mockResponse,
+        timestamp: new Date().toISOString(),
+        success: true,
+        source: 'mock-fallback'
+      });
+    } catch (fallbackError) {
+      console.error('💥 Fallback also failed:', fallbackError);
+      
+      // 最終的なエラーレスポンス
+      res.status(500).json({
+        error: 'AI service temporarily unavailable. Please try again later.',
+        timestamp: new Date().toISOString(),
+        success: false
+      });
+    }
   }
 }
 

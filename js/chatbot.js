@@ -430,7 +430,11 @@ class ChatbotAssistant {
                 console.error('❌ API Error Response:', response.status, errorText);
                 
                 // 詳細なエラー情報を表示（一時的なメッセージ）
-                this.showErrorMessage(`API接続エラー (${response.status})`);
+                if (response.status === 500) {
+                    this.showErrorMessage('AIサービスが一時的に利用できません。しばらく待ってから再試行してください。');
+                } else {
+                    this.showErrorMessage(`API接続エラー (${response.status})`);
+                }
                 throw new Error(`API request failed with status ${response.status}: ${errorText}`);
             }
 
