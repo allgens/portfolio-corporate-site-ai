@@ -10,6 +10,7 @@ class ChatbotAssistant {
         this.messages = [];
         this.apiEndpoint = '/api/chat'; // Vercel APIエンドポイント
         this.storageKey = 'chatbot_messages';
+        this.isComposing = false; // 日本語変換状態を管理
         
         this.init();
     }
@@ -48,9 +49,6 @@ class ChatbotAssistant {
                 <div class="chatbot-controls">
                     <button class="chatbot-restart" id="chatbot-restart" title="新しい会話を開始">
                         <i class="fas fa-redo"></i>
-                    </button>
-                    <button class="chatbot-close" id="chatbot-close" title="チャットボットを閉じる">
-                        <i class="fas fa-times"></i>
                     </button>
                 </div>
             </div>
@@ -121,9 +119,22 @@ class ChatbotAssistant {
         // 入力フィールド（Enterキーで送信）
         document.getElementById('chatbot-input').addEventListener('keydown', (e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
+                // 日本語変換中（IME composition）の場合は送信しない
+                if (e.isComposing || e.keyCode === 229) {
+                    return;
+                }
                 e.preventDefault();
                 this.sendMessage();
             }
+        });
+
+        // IME composition イベントの追加
+        document.getElementById('chatbot-input').addEventListener('compositionstart', () => {
+            this.isComposing = true;
+        });
+
+        document.getElementById('chatbot-input').addEventListener('compositionend', () => {
+            this.isComposing = false;
         });
 
         // 入力フィールドの自動リサイズ
@@ -139,10 +150,7 @@ class ChatbotAssistant {
             });
         });
 
-        // 閉じるボタン
-        document.getElementById('chatbot-close').addEventListener('click', () => {
-            this.closeChatbot();
-        });
+        // 閉じるボタンは削除済み
 
         // 再起動ボタン
         document.getElementById('chatbot-restart').addEventListener('click', () => {
@@ -347,30 +355,35 @@ class ChatbotAssistant {
     /**
      * メッセージの送信
      */
-    async sendMessage() {
+    async sendMessage(message = null) {
         const input = document.getElementById('chatbot-input');
-        const message = input.value.trim();
+        
+        // メッセージが指定されていない場合は入力フィールドから取得
+        if (!message) {
+            message = input.value.trim();
+            if (!message || this.isLoading) return;
 
-        if (!message || this.isLoading) return;
-
-        // ユーザーメッセージを追加
-        this.addMessage('user', message);
-        input.value = '';
-        this.autoResizeTextarea(input);
+            // ユーザーメッセージを追加
+            this.addMessage('user', message);
+            input.value = '';
+            this.autoResizeTextarea(input);
+        }
 
         // ローディング状態
         this.setLoading(true);
         this.showTypingIndicator();
 
         try {
+            console.log('🚀 Sending message:', message);
             // AI応答を取得
             const response = await this.getAIResponse(message);
             this.hideTypingIndicator();
             this.addMessage('ai', response);
+            console.log('✅ AI Response received:', response.substring(0, 100) + '...');
         } catch (error) {
             this.hideTypingIndicator();
+            console.error('❌ Chatbot API Error:', error);
             this.addMessage('ai', '申し訳ございません。現在、AIアシスタントに接続できません。しばらく時間をおいてから再度お試しください。');
-            console.error('Chatbot API Error:', error);
         } finally {
             this.setLoading(false);
         }
@@ -416,8 +429,8 @@ class ChatbotAssistant {
                 const errorText = await response.text();
                 console.error('❌ API Error Response:', response.status, errorText);
                 
-                // 詳細なエラー情報を表示
-                this.showErrorMessage(`API接続エラー (${response.status}): ${errorText.substring(0, 100)}...`);
+                // 詳細なエラー情報を表示（一時的なメッセージ）
+                this.showErrorMessage(`API接続エラー (${response.status})`);
                 throw new Error(`API request failed with status ${response.status}: ${errorText}`);
             }
 
@@ -425,10 +438,15 @@ class ChatbotAssistant {
             const data = await response.json();
             console.log('✅ AI API Response:', data);
 
-            // 成功レスポンスかチェック
+            // レスポンス形式をチェック（Vercel形式とローカルモック形式の両方に対応）
             if (data.success && data.message) {
-                console.log('🎉 AI Response received:', data.message.substring(0, 100) + '...');
+                // Vercel API形式
+                console.log('🎉 AI Response received (Vercel format):', data.message.substring(0, 100) + '...');
                 return data.message;
+            } else if (data.response) {
+                // ローカルモックAPI形式
+                console.log('🎉 AI Response received (Local mock format):', data.response.substring(0, 100) + '...');
+                return data.response;
             } else {
                 console.error('❌ Invalid response format:', data);
                 throw new Error('Invalid response format from AI API');
@@ -447,7 +465,8 @@ class ChatbotAssistant {
                 errorMessage = 'サーバーエラー: OpenAI APIキーの設定を確認してください。';
             }
             
-            this.showErrorMessage(errorMessage + ' フォールバック応答を表示します。');
+            // エラーメッセージを表示しない（フォールバック応答を静かに表示）
+            console.warn('⚠️ Using fallback response:', errorMessage);
             
             // フォールバック応答（APIが利用できない場合）
             return this.getFallbackResponse(message, formData);
@@ -649,26 +668,32 @@ allgensでは、お客様のビジネス課題を解決するための様々な�
     /**
      * クイックアクションの処理
      */
-    handleQuickAction(action) {
+    async handleQuickAction(action) {
+        console.log('🎯 Quick action triggered:', action);
         this.markSuggestionShown(action);
 
         switch (action) {
             case 'service-help':
+                console.log('📋 Processing service-help action');
                 this.addMessage('user', 'サービス選択について教えてください');
-                this.sendMessage();
+                await this.sendMessage('サービス選択について教えてください');
                 break;
             case 'draft-message':
+                console.log('📝 Processing draft-message action');
                 this.generateMessageDraft();
                 break;
             case 'pricing-info':
+                console.log('💰 Processing pricing-info action');
                 this.addMessage('user', '料金について教えてください');
-                this.sendMessage();
+                await this.sendMessage('料金について教えてください');
                 break;
             case 'contact-info':
+                console.log('📞 Processing contact-info action');
                 this.addMessage('user', '連絡先情報を教えてください');
-                this.sendMessage();
+                await this.sendMessage('連絡先情報を教えてください');
                 break;
             case 'help':
+                console.log('❓ Processing help action');
                 this.showHelpGuide();
                 break;
         }

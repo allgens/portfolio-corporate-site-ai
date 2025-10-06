@@ -134,10 +134,23 @@
                     addDebugLog(`✅ API Response: ${JSON.stringify(data).substring(0, 100)}...`, 'success');
                 } else {
                     const errorText = await response.text();
-                    addDebugLog(`❌ API Error: ${errorText}`, 'error');
+                    
+                    // 501エラーの場合、ローカルサーバーの制限を説明
+                    if (response.status === 501) {
+                        addDebugLog(`⚠️ ローカルサーバー制限: POSTメソッドがサポートされていません`, 'info');
+                        addDebugLog(`💡 解決方法: local-api-server.py を使用してください`, 'info');
+                        addDebugLog(`📝 コマンド: python3 local-api-server.py`, 'info');
+                    } else {
+                        addDebugLog(`❌ API Error: ${errorText}`, 'error');
+                    }
                 }
             } catch (error) {
-                addDebugLog(`💥 Fetch Error: ${error.message}`, 'error');
+                if (error.message.includes('Failed to fetch')) {
+                    addDebugLog(`🌐 ネットワークエラー: サーバーに接続できません`, 'error');
+                    addDebugLog(`💡 確認事項: ローカルサーバーが起動しているか確認してください`, 'info');
+                } else {
+                    addDebugLog(`💥 Fetch Error: ${error.message}`, 'error');
+                }
             }
         }
 
