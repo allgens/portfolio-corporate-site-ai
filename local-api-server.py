@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-ローカル開発用のモックAPIサーバー
+ローカル開発用のモックAPIサーバー（RAG対応）
 チャットボットのテスト用にPOSTリクエストを処理します
 """
 
@@ -8,7 +8,229 @@ import http.server
 import socketserver
 import json
 import urllib.parse
+import re
+import math
+from collections import Counter
 from datetime import datetime
+
+# RAG機能を直接実装
+def load_company_data():
+    """会社情報データを読み込み"""
+    try:
+        with open('data/companyInfo.json', 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except FileNotFoundError:
+        print("Warning: companyInfo.json not found, using fallback data")
+        return {
+            "company": {"name": "AllGens", "description": "AI技術を活用した企業向けソリューションを提供"},
+            "services": [],
+            "representative": {"name": "高倉 樹", "message": "AI技術の民主化を目指しています"},
+            "faq": []
+        }
+
+def text_to_vector(text):
+    """テキストをベクトル化（最適化版）"""
+    if not text or not isinstance(text, str):
+        return {}
+    
+    # テキストを正規化
+    text = text.lower().strip()
+    
+    # 日本語の文字を保持しつつ、記号を除去
+    text = re.sub(r'[^\w\s\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]', ' ', text)
+    
+    # 単語を分割
+    words = []
+    
+    # スペースで分割された単語（2文字以上）
+    for word in text.split():
+        if len(word) > 1:
+            words.append(word)
+    
+    # 日本語の文字単位でも分割（より細かく）
+    japanese_chars = re.findall(r'[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]', text)
+    for char in japanese_chars:
+        if len(char) > 0:
+            words.append(char)
+    
+    # 重複を除去しつつ、頻度をカウント
+    word_count = Counter(words)
+    
+    return dict(word_count)
+
+def cosine_similarity(vec_a, vec_b):
+    """コサイン類似度を計算"""
+    keys = set(vec_a.keys()) | set(vec_b.keys())
+    dot_product = sum(vec_a.get(key, 0) * vec_b.get(key, 0) for key in keys)
+    norm_a = math.sqrt(sum(vec_a.get(key, 0) ** 2 for key in keys))
+    norm_b = math.sqrt(sum(vec_b.get(key, 0) ** 2 for key in keys))
+    
+    if norm_a == 0 or norm_b == 0:
+        return 0
+    
+    return dot_product / (norm_a * norm_b)
+
+def create_knowledge_base():
+    """ナレッジベースを作成"""
+    company_data = load_company_data()
+    knowledge_base = []
+    
+    # 会社基本情報
+    company = company_data.get('company', {})
+    if company:
+        content = f"{company.get('name', 'AllGens')}（{company.get('japaneseName', 'オールジェンズ')}）は{company.get('description', 'AI技術を活用した企業向けソリューションを提供')}。{company.get('founded', '2020年')}年に設立され、{company.get('location', '東京都渋谷区')}に本社を構えています。"
+        knowledge_base.append({
+            'id': 'company-basic',
+            'content': content,
+            'category': 'company',
+            'vector': text_to_vector(content)
+        })
+    
+    # 代表者情報
+    representative = company_data.get('representative', {})
+    if representative:
+        content = f"代表取締役CEOの{representative.get('name', '高倉 樹')}です。{representative.get('message', 'AI技術の民主化を目指しています')} {representative.get('background', '東京大学工学部卒業後、大手IT企業でAI研究開発に従事')}"
+        knowledge_base.append({
+            'id': 'representative',
+            'content': content,
+            'category': 'representative',
+            'vector': text_to_vector(content)
+        })
+    
+    # サービス情報
+    services = company_data.get('services', [])
+    for service in services:
+        content = f"{service.get('name', '')}: {service.get('description', '')} 対象: {service.get('target', '')} 料金: {service.get('price', '')}"
+        knowledge_base.append({
+            'id': f"service-{service.get('id', '')}",
+            'content': content,
+            'category': 'service',
+            'vector': text_to_vector(content)
+        })
+        
+        # サービス詳細
+        features = service.get('features', [])
+        for i, feature in enumerate(features):
+            content = f"{service.get('name', '')}の機能: {feature}"
+            knowledge_base.append({
+                'id': f"service-{service.get('id', '')}-feature-{i}",
+                'content': content,
+                'category': 'service-feature',
+                'vector': text_to_vector(content)
+            })
+    
+    # FAQ
+    faq = company_data.get('faq', [])
+    for i, item in enumerate(faq):
+        content = f"Q: {item.get('question', '')} A: {item.get('answer', '')}"
+        knowledge_base.append({
+            'id': f"faq-{i}",
+            'content': content,
+            'category': 'faq',
+            'vector': text_to_vector(content)
+        })
+    
+    # 連絡先情報
+    contact = company_data.get('contact', {})
+    if contact:
+        content = f"連絡先: {contact.get('office', '')} 営業時間: {contact.get('businessHours', '')} 初回相談: {contact.get('consultation', '')} 回答時間: {contact.get('responseTime', '')}"
+        knowledge_base.append({
+            'id': 'contact',
+            'content': content,
+            'category': 'contact',
+            'vector': text_to_vector(content)
+        })
+    
+    return knowledge_base
+
+def search_relevant_info(query, knowledge_base, top_k=3):
+    """関連する情報を検索（キーワードベース + ベクトル類似度）"""
+    if not query or not knowledge_base:
+        return []
+    
+    print(f"🔍 Query: '{query}'")
+    
+    # キーワードベースの検索
+    query_lower = query.lower()
+    keyword_matches = []
+    
+    # 代表者関連のキーワード
+    if any(keyword in query_lower for keyword in ['代表', '代表者', 'ceo', '社長', '取締役']):
+        for item in knowledge_base:
+            if item['category'] == 'representative':
+                keyword_matches.append({**item, 'similarity': 1.0, 'match_type': 'keyword'})
+    
+    # 会社情報関連のキーワード
+    if any(keyword in query_lower for keyword in ['会社', '企業', '概要', '情報', 'allgens', 'サンプル']):
+        for item in knowledge_base:
+            if item['category'] == 'company':
+                keyword_matches.append({**item, 'similarity': 0.9, 'match_type': 'keyword'})
+    
+    # サービス関連のキーワード
+    if any(keyword in query_lower for keyword in ['サービス', '料金', '価格', '費用', 'コンサル', '開発', 'ai', 'システム']):
+        for item in knowledge_base:
+            if item['category'] == 'service':
+                keyword_matches.append({**item, 'similarity': 0.8, 'match_type': 'keyword'})
+    
+    # 連絡先関連のキーワード
+    if any(keyword in query_lower for keyword in ['連絡', '電話', 'メール', '住所', 'アクセス', 'お問い合わせ']):
+        for item in knowledge_base:
+            if item['category'] == 'contact':
+                keyword_matches.append({**item, 'similarity': 0.9, 'match_type': 'keyword'})
+    
+    # ベクトル類似度による検索
+    query_vector = text_to_vector(query)
+    vector_matches = []
+    
+    for item in knowledge_base:
+        if 'vector' in item and item['vector']:
+            similarity = cosine_similarity(query_vector, item['vector'])
+            if similarity > 0.01:  # 閾値を設定
+                vector_matches.append({**item, 'similarity': similarity, 'match_type': 'vector'})
+    
+    # ベクトル類似度でソート
+    vector_matches.sort(key=lambda x: x['similarity'], reverse=True)
+    
+    # 結果を統合
+    all_matches = keyword_matches + vector_matches
+    
+    # 重複を除去（同じIDの場合はキーワードマッチを優先）
+    seen_ids = set()
+    result = []
+    
+    # キーワードマッチを優先
+    for item in keyword_matches:
+        if item['id'] not in seen_ids:
+            result.append(item)
+            seen_ids.add(item['id'])
+    
+    # ベクトルマッチを追加
+    for item in vector_matches:
+        if item['id'] not in seen_ids and len(result) < top_k:
+            result.append(item)
+            seen_ids.add(item['id'])
+    
+    # デバッグ情報
+    print(f"📊 Keyword matches: {len(keyword_matches)}")
+    print(f"📊 Vector matches: {len(vector_matches)}")
+    print(f"✅ Returning {len(result)} items:")
+    for item in result:
+        print(f"  - {item['id']} ({item['category']}, {item['match_type']}): {item['similarity']:.3f}")
+    
+    return result[:top_k]
+
+def format_context(relevant_info):
+    """検索結果をコンテキストとして整形"""
+    if not relevant_info:
+        return "関連する情報が見つかりませんでした。"
+    
+    context = "【関連情報】\n"
+    for i, item in enumerate(relevant_info, 1):
+        context += f"{i}. {item['content']}\n"
+    
+    return context
+
+RAG_AVAILABLE = True
 
 class MockAPIHandler(http.server.SimpleHTTPRequestHandler):
     def do_POST(self):
@@ -19,7 +241,7 @@ class MockAPIHandler(http.server.SimpleHTTPRequestHandler):
             self.send_error(404, "API endpoint not found")
     
     def handle_chat_api(self):
-        """チャットAPIのモック処理"""
+        """チャットAPIのRAG対応モック処理"""
         try:
             # リクエストボディを読み取り
             content_length = int(self.headers['Content-Length'])
@@ -33,8 +255,11 @@ class MockAPIHandler(http.server.SimpleHTTPRequestHandler):
             print(f"📝 Received message: {message}")
             print(f"📊 Form data: {form_data}")
             
-            # モック応答を生成
-            mock_response = self.generate_mock_response(message, form_data)
+            # RAG対応のモック応答を生成
+            print("🚀 Starting RAG processing...")
+            print(f"📝 Message: '{message}'")
+            mock_response = self.generate_rag_mock_response(message, form_data)
+            print(f"✅ RAG processing completed")
             
             # レスポンスを送信
             self.send_response(200)
@@ -47,7 +272,7 @@ class MockAPIHandler(http.server.SimpleHTTPRequestHandler):
             response_data = {
                 'response': mock_response,
                 'timestamp': datetime.now().isoformat(),
-                'source': 'local-mock-api'
+                'source': 'local-rag-mock-api'
             }
             
             self.wfile.write(json.dumps(response_data, ensure_ascii=False).encode('utf-8'))
@@ -55,6 +280,52 @@ class MockAPIHandler(http.server.SimpleHTTPRequestHandler):
         except Exception as e:
             print(f"❌ Error processing request: {e}")
             self.send_error(500, f"Internal server error: {str(e)}")
+    
+    def generate_rag_mock_response(self, message, form_data):
+        """RAG対応のモック応答を生成"""
+        try:
+            print("🔍 Creating knowledge base...")
+            knowledge_base = create_knowledge_base()
+            print(f"📚 Knowledge base created with {len(knowledge_base)} items")
+            
+            print("🔍 Searching relevant information...")
+            relevant_info = search_relevant_info(message, knowledge_base, 3)
+            print(f"📊 Found {len(relevant_info)} relevant items")
+            
+            print("📝 Formatting context...")
+            context = format_context(relevant_info)
+            
+            print("🤖 Generating RAG mock response...")
+            
+            # RAG対応の応答を生成（改良版）
+            if context and context != "関連する情報が見つかりませんでした。":
+                form_info = ""
+                if form_data:
+                    if form_data.get('name'):
+                        form_info += f"お名前: {form_data['name']}様\n"
+                    if form_data.get('company'):
+                        form_info += f"会社名: {form_data['company']}\n"
+                
+                # メッセージに基づいて具体的な回答を生成
+                response = self.generate_specific_response(message, relevant_info, form_data, form_info)
+            else:
+                # コンテキストがない場合は基本的な応答
+                response = f"""お問い合わせいただき、ありがとうございます！
+
+{message}についてお答えいたします。
+
+AllGensはAI技術を活用した企業向けソリューションを提供しています。
+
+📞 **お問い合わせ先：**
+• 電話: 03-1234-5678
+• メール: info@allgens.co.jp"""
+            
+            return response
+            
+        except Exception as e:
+            print(f"❌ Error in RAG processing: {e}")
+            # フォールバック: 基本的なモック応答
+            return self.generate_mock_response(message, form_data)
     
     def generate_mock_response(self, message, form_data):
         """メッセージに基づいてモック応答を生成"""
@@ -289,6 +560,127 @@ class MockAPIHandler(http.server.SimpleHTTPRequestHandler):
             self.end_headers()
         else:
             super().do_OPTIONS()
+    
+    def generate_specific_response(self, message, relevant_info, form_data, form_info):
+        """メッセージに基づいて具体的な回答を生成"""
+        message_lower = message.lower()
+        
+        # 代表者に関する質問
+        if any(keyword in message_lower for keyword in ['代表', '代表者', 'ceo', '社長', '取締役', '誰']):
+            for item in relevant_info:
+                if item['category'] == 'representative':
+                    return f"""お問い合わせいただき、ありがとうございます！
+
+**代表者について**
+
+{item['content']}
+
+{form_info}
+
+ご不明な点や追加でお聞きになりたいことがございましたら、お気軽にお尋ねください。初回相談は無料で承っております。
+
+📞 **お問い合わせ先：**
+• 電話: 03-1234-5678
+• メール: info@allgens.co.jp"""
+        
+        # 料金に関する質問
+        elif any(keyword in message_lower for keyword in ['料金', '価格', '費用', 'いくら', 'コスト']):
+            service_info = [item for item in relevant_info if item['category'] == 'service']
+            if service_info:
+                response = f"""お問い合わせいただき、ありがとうございます！
+
+**料金について**
+
+"""
+                for item in service_info:
+                    response += f"• {item['content']}\n\n"
+                response += f"""{form_info}
+
+詳細な料金については、お客様のご要望に応じて個別にお見積もりいたします。
+
+ご不明な点や追加でお聞きになりたいことがございましたら、お気軽にお尋ねください。初回相談は無料で承っております。
+
+📞 **お問い合わせ先：**
+• 電話: 03-1234-5678
+• メール: info@allgens.co.jp"""
+                return response
+        
+        # サービスに関する質問
+        elif any(keyword in message_lower for keyword in ['サービス', '何が', 'できる', '提供', '選択']):
+            service_info = [item for item in relevant_info if item['category'] == 'service']
+            if service_info:
+                response = f"""お問い合わせいただき、ありがとうございます！
+
+**提供サービス**
+
+"""
+                for item in service_info:
+                    response += f"• {item['content']}\n\n"
+                response += f"""{form_info}
+
+ご不明な点や追加でお聞きになりたいことがございましたら、お気軽にお尋ねください。初回相談は無料で承っております。
+
+📞 **お問い合わせ先：**
+• 電話: 03-1234-5678
+• メール: info@allgens.co.jp"""
+                return response
+        
+        # 連絡先に関する質問
+        elif any(keyword in message_lower for keyword in ['連絡', '電話', 'メール', '住所', 'アクセス', 'お問い合わせ']):
+            contact_info = [item for item in relevant_info if item['category'] == 'contact']
+            if contact_info:
+                response = f"""お問い合わせいただき、ありがとうございます！
+
+**連絡先情報**
+
+"""
+                for item in contact_info:
+                    response += f"{item['content']}\n\n"
+                response += f"""{form_info}
+
+ご不明な点や追加でお聞きになりたいことがございましたら、お気軽にお尋ねください。初回相談は無料で承っております。
+
+📞 **お問い合わせ先：**
+• 電話: 03-1234-5678
+• メール: info@allgens.co.jp"""
+                return response
+        
+        # 会社情報に関する質問
+        elif any(keyword in message_lower for keyword in ['会社', '企業', '概要', '情報', 'allgens', 'サンプル']):
+            company_info = [item for item in relevant_info if item['category'] == 'company']
+            if company_info:
+                response = f"""お問い合わせいただき、ありがとうございます！
+
+**会社概要**
+
+"""
+                for item in company_info:
+                    response += f"{item['content']}\n\n"
+                response += f"""{form_info}
+
+ご不明な点や追加でお聞きになりたいことがございましたら、お気軽にお尋ねください。初回相談は無料で承っております。
+
+📞 **お問い合わせ先：**
+• 電話: 03-1234-5678
+• メール: info@allgens.co.jp"""
+                return response
+        
+        # その他の質問（従来の形式）
+        else:
+            context = format_context(relevant_info)
+            return f"""お問い合わせいただき、ありがとうございます！
+
+{context}
+
+上記の情報を参考に、お客様のご質問にお答えいたします。
+
+{form_info}
+
+ご不明な点や追加でお聞きになりたいことがございましたら、お気軽にお尋ねください。初回相談は無料で承っております。
+
+📞 **お問い合わせ先：**
+• 電話: 03-1234-5678
+• メール: info@allgens.co.jp"""
 
 def run_server(port=8000):
     """サーバーを起動"""
@@ -309,6 +701,7 @@ def run_server(port=8000):
         except KeyboardInterrupt:
             print(f"\n🛑 サーバーを停止しました")
             httpd.shutdown()
+
 
 if __name__ == "__main__":
     run_server()
