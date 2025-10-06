@@ -8,6 +8,8 @@
 
 // VercelのServerless Function用のエクスポート
 export default async function handler(req, res) {
+  // エラーハンドリングの追加
+  try {
   // デバッグログの開始
   console.log('🚀 Chat API called:', {
     method: req.method,
@@ -303,4 +305,15 @@ function generateFallbackResponse(message, formData) {
 📞 **直接のお問い合わせも可能です：**
 • 電話: 03-1234-5678
 • メール: info@allgens.co.jp`;
+}
+
+// エラーハンドリングの追加
+} catch (error) {
+  console.error('💥 Unexpected error in handler:', error);
+  return res.status(500).json({
+    success: false,
+    message: 'サーバー内部エラーが発生しました。しばらく時間をおいてから再度お試しください。',
+    error: process.env.NODE_ENV === 'development' ? error.message : undefined
+  });
+}
 }

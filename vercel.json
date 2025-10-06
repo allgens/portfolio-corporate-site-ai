@@ -1,29 +1,4 @@
 {
-  "version": 2,
-  "name": "portfolio-corporate-site-ai",
-  "builds": [
-    {
-      "src": "api/**/*.js",
-      "use": "@vercel/node"
-    },
-    {
-      "src": "**/*.html",
-      "use": "@vercel/static"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/api/(.*)",
-      "dest": "/api/$1"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/$1"
-    }
-  ],
-  "env": {
-    "OPENAI_API_KEY": "@openai_api_key"
-  },
   "functions": {
     "api/chat.js": {
       "maxDuration": 30

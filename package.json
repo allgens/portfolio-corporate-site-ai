@@ -1,0 +1,25 @@
+{
+  "name": "portfolio-corporate-site-ai",
+  "version": "1.0.0",
+  "description": "Corporate website with AI chatbot integration",
+  "main": "index.html",
+  "scripts": {
+    "dev": "python3 -m http.server 8000",
+    "build": "echo 'No build step required for static site'",
+    "start": "python3 -m http.server 8000"
+  },
+  "dependencies": {},
+  "devDependencies": {},
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": [
+    "corporate",
+    "website",
+    "ai",
+    "chatbot",
+    "openai"
+  ],
+  "author": "Takakura Itsuki",
+  "license": "MIT"
+}
