@@ -1,10 +1,13 @@
 /**
- * Vercel API Route: AI Chat Endpoint
- * OpenAI API integration for chatbot responses
+ * Vercel API Route: AI Chat Endpoint with RAG
+ * OpenAI API integration for chatbot responses with Retrieval-Augmented Generation
  * 
  * このファイルはVercelのServerless Functionとして動作します。
- * フロントエンドからPOSTリクエストを受け取り、OpenAI APIを呼び出してAI応答を生成します。
+ * フロントエンドからPOSTリクエストを受け取り、RAG技術を使ってサイト内容に基づいたAI応答を生成します。
  */
+
+// RAGユーティリティをインポート
+const { createKnowledgeBase, searchRelevantInfo, formatContext, generateRAGPrompt } = require('./rag-utils');
 
 // VercelのServerless Function用のエクスポート
 export default async function handler(req, res) {
@@ -75,10 +78,26 @@ export default async function handler(req, res) {
       return;
     }
 
-    console.log('🤖 Generating AI response...');
+    console.log('🤖 Generating AI response with RAG...');
     
-    // AI応答を生成
-    const aiResponse = await generateAIResponse(message, formData, openaiApiKey);
+    // ナレッジベースを作成
+    const knowledgeBase = createKnowledgeBase();
+    console.log('📚 Knowledge base created with', knowledgeBase.length, 'items');
+    
+    // 関連情報を検索
+    const relevantInfo = searchRelevantInfo(message, knowledgeBase, 3);
+    console.log('🔍 Found', relevantInfo.length, 'relevant information items');
+    
+    // コンテキストを整形
+    const context = formatContext(relevantInfo);
+    console.log('📝 Context formatted:', context.substring(0, 200) + '...');
+    
+    // RAG用のプロンプトを生成
+    const ragPrompt = generateRAGPrompt(message, context, formData);
+    console.log('💬 RAG prompt generated');
+    
+    // AI応答を生成（RAG対応）
+    const aiResponse = await generateAIResponse(ragPrompt, formData, openaiApiKey);
 
     console.log('✅ AI Response generated:', aiResponse.substring(0, 100) + '...');
 
@@ -95,15 +114,22 @@ export default async function handler(req, res) {
     console.log('🔄 Attempting fallback to mock response...');
 
     try {
-      // フォールバック：モック応答を試行
+      // フォールバック：RAG対応のモック応答を試行
       const { message, formData } = req.body;
-      const mockResponse = generateMockResponse(message, formData);
+      
+      // ナレッジベースから関連情報を検索
+      const knowledgeBase = createKnowledgeBase();
+      const relevantInfo = searchRelevantInfo(message, knowledgeBase, 2);
+      const context = formatContext(relevantInfo);
+      
+      // RAG対応のモック応答を生成
+      const mockResponse = generateRAGMockResponse(message, context, formData);
       
       res.status(200).json({
         message: mockResponse,
         timestamp: new Date().toISOString(),
         success: true,
-        source: 'mock-fallback'
+        source: 'rag-mock-fallback'
       });
     } catch (fallbackError) {
       console.error('💥 Fallback also failed:', fallbackError);
@@ -329,6 +355,35 @@ function generateFallbackResponse(message, formData) {
 📞 **直接のお問い合わせも可能です：**
 • 電話: 03-1234-5678
 • メール: info@allgens.co.jp`;
+}
+
+/**
+ * RAG対応のモック応答を生成
+ * コンテキスト情報を活用してより適切な応答を生成
+ */
+function generateRAGMockResponse(message, context, formData) {
+  const lowerMessage = message.toLowerCase();
+  
+  // コンテキストに基づいた応答を生成
+  if (context.includes('関連情報') && context !== '関連する情報が見つかりませんでした。') {
+    return `お問い合わせいただき、ありがとうございます！
+
+${context}
+
+上記の情報を参考に、お客様のご質問にお答えいたします。
+
+${formData.name ? `お名前: ${formData.name}様` : ''}
+${formData.company ? `会社名: ${formData.company}` : ''}
+
+ご不明な点や追加でお聞きになりたいことがございましたら、お気軽にお尋ねください。初回相談は無料で承っております。
+
+📞 **お問い合わせ先：**
+• 電話: 03-1234-5678
+• メール: info@allgens.co.jp`;
+  }
+  
+  // コンテキストがない場合は通常のモック応答
+  return generateMockResponse(message, formData);
 }
 
 // エラーハンドリングの追加
