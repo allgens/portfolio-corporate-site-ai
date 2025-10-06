@@ -383,7 +383,19 @@ class ChatbotAssistant {
         } catch (error) {
             this.hideTypingIndicator();
             console.error('❌ Chatbot API Error:', error);
-            this.addMessage('ai', '申し訳ございません。現在、AIアシスタントに接続できません。しばらく時間をおいてから再度お試しください。');
+            
+            // エラーの種類に応じて適切なメッセージを表示
+            let errorMessage = '申し訳ございません。現在、AIアシスタントに接続できません。しばらく時間をおいてから再度お試しください。';
+            
+            if (error.message.includes('500')) {
+                errorMessage = 'AIサービスが一時的に利用できません。しばらく待ってから再試行してください。';
+            } else if (error.message.includes('404')) {
+                errorMessage = 'サービスが一時的に利用できません。しばらく待ってから再試行してください。';
+            } else if (error.message.includes('network') || error.message.includes('fetch')) {
+                errorMessage = 'ネットワーク接続に問題があります。インターネット接続を確認してから再試行してください。';
+            }
+            
+            this.addMessage('ai', errorMessage);
         } finally {
             this.setLoading(false);
         }
@@ -429,12 +441,7 @@ class ChatbotAssistant {
                 const errorText = await response.text();
                 console.error('❌ API Error Response:', response.status, errorText);
                 
-                // 詳細なエラー情報を表示（一時的なメッセージ）
-                if (response.status === 500) {
-                    this.showErrorMessage('AIサービスが一時的に利用できません。しばらく待ってから再試行してください。');
-                } else {
-                    this.showErrorMessage(`API接続エラー (${response.status})`);
-                }
+                // エラーを上位のsendMessage関数に委ねる（エラーメッセージは表示しない）
                 throw new Error(`API request failed with status ${response.status}: ${errorText}`);
             }
 
