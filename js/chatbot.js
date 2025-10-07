@@ -27,6 +27,11 @@ class ChatbotAssistant {
         this.loadMessages();
         this.addInitialMessage();
         this.setupFormIntegration();
+        
+        // ページを閉じる時のクリーンアップ
+        window.addEventListener('beforeunload', () => {
+            this.toggleBodyScroll(false);
+        });
     }
 
     /**
@@ -1161,16 +1166,42 @@ class ChatbotAssistant {
                 
                 // インラインスタイルも設定（CSSの優先度問題を回避）
                 if (this.currentSize === 'compact') {
-                    container.style.maxWidth = '400px';
-                    container.style.height = '600px';
+                    container.style.maxWidth = '450px';
+                    container.style.height = '650px';
                 } else if (this.currentSize === 'large') {
-                    container.style.maxWidth = '600px';
-                    container.style.height = '800px';
+                    container.style.maxWidth = '90vw';
+                    container.style.height = '90vh';
                 }
             }
             
+            // 背景スクロール制御
+            this.toggleBodyScroll(this.currentSize === 'large');
+            
             // ボタンの表示を更新
             this.updateSizeButton();
+        }
+    }
+
+    /**
+     * 背景スクロールの制御
+     */
+    toggleBodyScroll(disable) {
+        if (disable) {
+            // スクロールを無効にする
+            document.body.style.overflow = 'hidden';
+            document.body.style.position = 'fixed';
+            document.body.style.width = '100%';
+            document.body.style.top = `-${window.scrollY}px`;
+        } else {
+            // スクロールを有効にする
+            const scrollY = document.body.style.top;
+            document.body.style.overflow = '';
+            document.body.style.position = '';
+            document.body.style.width = '';
+            document.body.style.top = '';
+            if (scrollY) {
+                window.scrollTo(0, parseInt(scrollY || '0') * -1);
+            }
         }
     }
 

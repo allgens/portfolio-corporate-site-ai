@@ -18,9 +18,9 @@
 
 /* サイズ切り替え用のクラス */
 .chatbot-container.compact {
-    max-width: 320px !important;
-    height: 480px !important;
-    /* フォームの邪魔をしない最小表示 */
+    max-width: 450px !important;
+    height: 650px !important;
+    /* フォーム横に並ぶ適切なサイズ */
 }
 
 .chatbot-container.large {
@@ -768,8 +768,8 @@
 /* デスクトップ専用のサイズ設定 */
 @media (min-width: 769px) {
     .chatbot-container.compact {
-        max-width: 320px !important;
-        height: 480px !important;
+        max-width: 450px !important;
+        height: 650px !important;
     }
 
     .chatbot-container.large {
@@ -793,9 +793,9 @@
     }
     
     .chatbot-container.compact {
-        max-width: 280px;
-        height: 400px;
-        max-height: 400px;
+        max-width: 380px;
+        height: 550px;
+        max-height: 550px;
     }
     
     .chatbot-container.large {
@@ -839,8 +839,8 @@
     }
     
     .chatbot-container.compact {
-        max-width: 250px;
-        height: 350px;
+        max-width: 300px;
+        height: 450px;
         position: fixed;
         bottom: 20px;
         right: 20px;
