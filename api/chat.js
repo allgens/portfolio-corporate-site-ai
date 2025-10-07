@@ -408,4 +408,3 @@ ${formData.company ? `会社名: ${formData.company}` : ''}
     error: process.env.NODE_ENV === 'development' ? error.message : undefined
   });
 }
-}
