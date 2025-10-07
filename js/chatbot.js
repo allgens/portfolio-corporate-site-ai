@@ -10,7 +10,9 @@ class ChatbotAssistant {
         this.messages = [];
         this.apiEndpoint = '/api/chat'; // Vercel APIエンドポイント
         this.storageKey = 'chatbot_messages';
+        this.sizeStorageKey = 'chatbot_size';
         this.isComposing = false; // 日本語変換状態を管理
+        this.currentSize = this.loadSizePreference(); // サイズ設定を読み込み
         
         this.init();
     }
@@ -20,6 +22,7 @@ class ChatbotAssistant {
      */
     init() {
         this.createChatbotHTML();
+        this.applySizePreference();
         this.bindEvents();
         this.loadMessages();
         this.addInitialMessage();
@@ -40,13 +43,16 @@ class ChatbotAssistant {
                     <i class="fas fa-robot"></i>
                 </div>
                 <div class="chatbot-info">
-                    <div class="chatbot-name">allgens</div>
+                    <div class="chatbot-name">AI Assistant</div>
                     <div class="chatbot-status">
                         <div class="status-dot"></div>
                         <span>オンライン</span>
                     </div>
                 </div>
                 <div class="chatbot-controls">
+                    <button class="chatbot-size-toggle" id="chatbot-size-toggle" title="サイズ切り替え">
+                        <i class="fas fa-expand"></i>
+                    </button>
                     <button class="chatbot-restart" id="chatbot-restart" title="新しい会話を開始">
                         <i class="fas fa-redo"></i>
                     </button>
@@ -151,6 +157,14 @@ class ChatbotAssistant {
         });
 
         // 閉じるボタンは削除済み
+
+        // サイズ切り替えボタン
+        const sizeToggleBtn = document.getElementById('chatbot-size-toggle');
+        if (sizeToggleBtn) {
+            sizeToggleBtn.addEventListener('click', () => {
+                this.toggleSize();
+            });
+        }
 
         // 再起動ボタン
         document.getElementById('chatbot-restart').addEventListener('click', () => {
@@ -281,7 +295,7 @@ class ChatbotAssistant {
      */
     addInitialMessage() {
         if (this.messages.length === 0) {
-            this.addMessage('ai', `こんにちは！AIアシスタントのallgensです 🤖
+            this.addMessage('ai', `こんにちは！AIアシスタントです 🤖
 
 お問い合わせフォームの入力をお手伝いします！
 
@@ -348,8 +362,27 @@ class ChatbotAssistant {
      * メッセージのフォーマット
      */
     formatMessage(content) {
+        // 基本的なMarkdown記法を処理
+        let formatted = content;
+        
+        // 太文字 (**text** または __text__)
+        formatted = formatted.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+        formatted = formatted.replace(/__(.*?)__/g, '<strong>$1</strong>');
+        
+        // 斜体 (*text* または _text_)
+        formatted = formatted.replace(/\*(.*?)\*/g, '<em>$1</em>');
+        formatted = formatted.replace(/_(.*?)_/g, '<em>$1</em>');
+        
+        // コードブロック (```code```)
+        formatted = formatted.replace(/```(.*?)```/gs, '<pre><code>$1</code></pre>');
+        
+        // インラインコード (`code`)
+        formatted = formatted.replace(/`(.*?)`/g, '<code>$1</code>');
+        
         // 改行を<br>に変換
-        return content.replace(/\n/g, '<br>');
+        formatted = formatted.replace(/\n/g, '<br>');
+        
+        return formatted;
     }
 
     /**
@@ -542,7 +575,7 @@ class ChatbotAssistant {
         // 連絡先関連の質問
         if (lowerMessage.includes('連絡先') || lowerMessage.includes('電話') || lowerMessage.includes('メール')) {
             return `📞 **電話番号**: 03-1234-5678
-📧 **メール**: info@allgens.co.jp
+📧 **メール**: contact@example.com
 🕒 **営業時間**: 平日 9:00-18:00
 📍 **所在地**: 東京都千代田区千代田1-1-1
 
@@ -565,7 +598,7 @@ class ChatbotAssistant {
 
         // 挨拶パターン
         if (lowerMessage.includes('こんにちは') || lowerMessage.includes('はじめまして') || lowerMessage.includes('初めまして')) {
-            return `こんにちは！allgensのAIアシスタントです 😊
+            return `こんにちは！AIアシスタントです 😊
 
 お問い合わせフォームの入力をお手伝いさせていただきます。
 
@@ -646,7 +679,7 @@ class ChatbotAssistant {
 
             `お問い合わせいただき、ありがとうございます！
 
-allgensでは、お客様のビジネス課題を解決するための様々なサービスを提供しています。
+私たちは、お客様のビジネス課題を解決するための様々なサービスを提供しています。
 
 🤖 **AI導入コンサルティング**で業務効率化
 ⚙️ **システム運用サポート**で安定稼働
@@ -655,7 +688,7 @@ allgensでは、お客様のビジネス課題を解決するための様々な�
 
 どのようなお悩みがございますか？お気軽にご相談ください！`,
 
-            `こんにちは！allgensのAIアシスタントです。
+            `こんにちは！AIアシスタントです。
 
 お客様のビジネスをサポートするために、いつでもお手伝いさせていただきます。
 
@@ -1091,6 +1124,93 @@ allgensでは、お客様のビジネス課題を解決するための様々な�
         if (reopenBtn) {
             reopenBtn.classList.remove('animate-in');
             reopenBtn.style.display = 'none';
+        }
+    }
+
+    /**
+     * サイズ設定の読み込み
+     */
+    loadSizePreference() {
+        return localStorage.getItem(this.sizeStorageKey) || 'default';
+    }
+
+    /**
+     * サイズ設定の保存
+     */
+    saveSizePreference(size) {
+        localStorage.setItem(this.sizeStorageKey, size);
+    }
+
+    /**
+     * サイズ設定の適用
+     */
+    applySizePreference() {
+        const container = document.getElementById('chatbot-container');
+        
+        if (container) {
+            // 既存のサイズクラスを削除
+            container.classList.remove('compact', 'large');
+            
+            // インラインスタイルをクリア
+            container.style.maxWidth = '';
+            container.style.height = '';
+            
+            // 新しいサイズクラスを追加
+            if (this.currentSize !== 'default') {
+                container.classList.add(this.currentSize);
+                
+                // インラインスタイルも設定（CSSの優先度問題を回避）
+                if (this.currentSize === 'compact') {
+                    container.style.maxWidth = '400px';
+                    container.style.height = '600px';
+                } else if (this.currentSize === 'large') {
+                    container.style.maxWidth = '600px';
+                    container.style.height = '800px';
+                }
+            }
+            
+            // ボタンの表示を更新
+            this.updateSizeButton();
+        }
+    }
+
+    /**
+     * サイズの設定
+     */
+    setSize(size) {
+        this.currentSize = size;
+        this.saveSizePreference(size);
+        this.applySizePreference();
+    }
+
+    /**
+     * サイズのトグル
+     */
+    toggleSize() {
+        if (this.currentSize === 'default' || this.currentSize === 'compact') {
+            this.setSize('large');
+        } else {
+            this.setSize('compact');
+        }
+    }
+
+    /**
+     * サイズボタンの表示を更新
+     */
+    updateSizeButton() {
+        const toggleBtn = document.getElementById('chatbot-size-toggle');
+        const icon = toggleBtn?.querySelector('i');
+        
+        if (toggleBtn && icon) {
+            if (this.currentSize === 'large') {
+                // ラージサイズの場合は圧縮アイコンを表示
+                icon.className = 'fas fa-compress';
+                toggleBtn.title = 'コンパクトサイズに変更';
+            } else {
+                // コンパクトまたはデフォルトの場合は展開アイコンを表示
+                icon.className = 'fas fa-expand';
+                toggleBtn.title = 'ラージサイズに変更';
+            }
         }
     }
 }

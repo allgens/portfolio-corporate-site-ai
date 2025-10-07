@@ -79,11 +79,11 @@ class ChatbotAssistantGitHubPages {
      * システムプロンプトの構築
      */
     buildSystemPrompt(formData) {
-        return `あなたはallgensという企業のAIアシスタントです。お問い合わせフォームの入力サポートを担当しています。
+        return `あなたはAIアシスタントです。お問い合わせフォームの入力サポートを担当しています。
 
 【企業情報】
-- 会社名: allgens
-- 連絡先: 03-1234-5678 / info@allgens.co.jp
+- 会社名: TechCorp
+- 連絡先: 03-1234-5678 / contact@example.com
 - 営業時間: 平日 9:00-18:00
 
 【提供サービス】

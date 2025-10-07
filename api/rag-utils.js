@@ -169,7 +169,7 @@ function formatContext(relevantInfo) {
 function generateRAGPrompt(userMessage, context, formData = {}) {
     const formContext = formData.name ? `\n\n【お客様情報】\nお名前: ${formData.name}\n会社名: ${formData.company || '未入力'}\nメール: ${formData.email || '未入力'}\n電話: ${formData.phone || '未入力'}\n選択サービス: ${formData.service || '未選択'}\nメッセージ: ${formData.message || '未入力'}` : '';
     
-    return `あなたはAllGensのAIアシスタントです。以下の情報を参考にして、お客様の質問に丁寧で正確な回答をしてください。
+    return `あなたはAIアシスタントです。以下の情報を参考にして、お客様の質問に丁寧で正確な回答をしてください。
 
 ${context}
 

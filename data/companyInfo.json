@@ -5,8 +5,8 @@
     "description": "ポートフォリオ作品のサンプル企業として、AI導入コンサルティング、システム運用サポート、ECマーケティング支援、システム開発を提供しています",
     "founded": "2024年4月",
     "location": "〒100-0001 東京都千代田区千代田1-1-1 バーチャルオフィス",
-    "website": "https://itsukitak3ura.github.io/allgens-corporate-site",
-    "email": "info@allgens.co.jp",
+    "website": "https://example.com",
+    "email": "contact@example.com",
     "phone": "03-1234-5678",
     "capital": "1,000万円",
     "employees": "20名（2024年12月現在）"
@@ -125,7 +125,7 @@
   "contact": {
     "office": "〒100-0001 東京都千代田区千代田1-1-1 バーチャルオフィス",
     "phone": "03-1234-5678",
-    "email": "info@allgens.co.jp",
+    "email": "contact@example.com",
     "businessHours": "平日 9:00-18:00",
     "consultation": "初回相談無料（60分）",
     "responseTime": "お問い合わせから24時間以内に回答"

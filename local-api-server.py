@@ -22,7 +22,7 @@ def load_company_data():
     except FileNotFoundError:
         print("Warning: companyInfo.json not found, using fallback data")
         return {
-            "company": {"name": "AllGens", "description": "AI技術を活用した企業向けソリューションを提供"},
+            "company": {"name": "TechCorp", "description": "AI技術を活用した企業向けソリューションを提供"},
             "services": [],
             "representative": {"name": "高倉 樹", "message": "AI技術の民主化を目指しています"},
             "faq": []
@@ -78,7 +78,7 @@ def create_knowledge_base():
     # 会社基本情報
     company = company_data.get('company', {})
     if company:
-        content = f"{company.get('name', 'AllGens')}（{company.get('japaneseName', 'オールジェンズ')}）は{company.get('description', 'AI技術を活用した企業向けソリューションを提供')}。{company.get('founded', '2020年')}年に設立され、{company.get('location', '東京都渋谷区')}に本社を構えています。"
+        content = f"{company.get('name', 'TechCorp')}は{company.get('description', 'AI技術を活用した企業向けソリューションを提供')}。{company.get('founded', '2020年')}年に設立され、{company.get('location', '東京都渋谷区')}に本社を構えています。"
         knowledge_base.append({
             'id': 'company-basic',
             'content': content,
@@ -161,7 +161,7 @@ def search_relevant_info(query, knowledge_base, top_k=3):
                 keyword_matches.append({**item, 'similarity': 1.0, 'match_type': 'keyword'})
     
     # 会社情報関連のキーワード
-    if any(keyword in query_lower for keyword in ['会社', '企業', '概要', '情報', 'allgens', 'サンプル']):
+    if any(keyword in query_lower for keyword in ['会社', '企業', '概要', '情報', 'techcorp', 'サンプル']):
         for item in knowledge_base:
             if item['category'] == 'company':
                 keyword_matches.append({**item, 'similarity': 0.9, 'match_type': 'keyword'})
@@ -314,11 +314,11 @@ class MockAPIHandler(http.server.SimpleHTTPRequestHandler):
 
 {message}についてお答えいたします。
 
-AllGensはAI技術を活用した企業向けソリューションを提供しています。
+TechCorpはAI技術を活用した企業向けソリューションを提供しています。
 
 📞 **お問い合わせ先：**
 • 電話: 03-1234-5678
-• メール: info@allgens.co.jp"""
+• メール: contact@example.com"""
             
             return response
             
@@ -333,14 +333,14 @@ AllGensはAI技術を活用した企業向けソリューションを提供し�
         
         # 挨拶
         if any(word in message_lower for word in ['こんにちは', 'hello', 'はじめまして', 'おはよう', 'こんばんは']):
-            return "こんにちは！AIアシスタントのallgensです。お問い合わせフォームの入力をお手伝いさせていただきます。どのようなご相談でしょうか？"
+            return "こんにちは！AIアシスタントです。お問い合わせフォームの入力をお手伝いさせていただきます。どのようなご相談でしょうか？"
         
         # 連絡先情報
         if any(word in message_lower for word in ['連絡先', '電話', 'メール', '住所', 'アクセス', '会社情報']):
             return """連絡先情報をご案内いたします。
 
 📞 **電話番号**: 03-1234-5678
-📧 **メールアドレス**: info@allgens.co.jp
+📧 **メールアドレス**: contact@example.com
 📍 **所在地**: 〒100-0001 東京都千代田区千代田1-1-1 バーチャルオフィス
 🕒 **営業時間**: 平日 9:00-18:00
 
@@ -531,24 +531,28 @@ AllGensはAI技術を活用した企業向けソリューションを提供し�
             elif service == 'development':
                 return "システム開発をお考えですね。お客様のご要望に応じたシステムを開発いたします。どのようなシステムをお考えでしょうか？"
         
-        # デフォルト応答（より詳細で有用な情報を提供）
+        # デフォルト応答（制限事項付き）
         return f"""「{message}」についてお聞きしました。
 
-お客様のご要望に応じて最適なソリューションをご提案いたします。
+申し訳ございませんが、お客様のご質問について、当社のホームページに記載されている情報の中では、適切な回答を提供できません。
 
-🎯 **お手伝いできること**:
-・サービス選択のアドバイス
-・具体的な料金・期間のご案内
-・技術的なご質問への回答
-・導入事例のご紹介
-・無料相談のご案内
+**当社がお答えできる情報**:
+・会社概要・代表者情報
+・提供サービス（AI導入コンサルティング、システム運用サポート、ECマーケティング支援、システム開発）
+・料金体系・お見積もり
+・連絡先・アクセス情報
+・よくある質問（FAQ）
 
-より詳しく教えていただけますか？例えば：
-- どのような課題をお持ちですか？
-- いつ頃の導入をお考えですか？
-- 予算の目安はございますか？
+**重要事項**:
+・上記の情報は当社の公式情報に基づいてお答えしています
+・ホームページに記載されていない情報については、お答えできません
+・より詳細な情報が必要な場合は、直接お問い合わせください
 
-お気軽にご質問ください！"""
+より具体的なご質問や、上記の情報に関する詳細なご相談がございましたら、お気軽にお尋ねください。初回相談は無料で承っております。
+
+📞 **お問い合わせ先**:
+・電話: 03-1234-5678
+・メール: info@allgens.co.jp"""
     
     def do_OPTIONS(self):
         """CORSプリフライトリクエストを処理"""
@@ -562,7 +566,7 @@ AllGensはAI技術を活用した企業向けソリューションを提供し�
             super().do_OPTIONS()
     
     def generate_specific_response(self, message, relevant_info, form_data, form_info):
-        """メッセージに基づいて具体的な回答を生成"""
+        """メッセージに基づいて具体的な回答を生成（高精度版）"""
         message_lower = message.lower()
         
         # 代表者に関する質問
@@ -577,11 +581,16 @@ AllGensはAI技術を活用した企業向けソリューションを提供し�
 
 {form_info}
 
+**重要事項：**
+• 上記の情報は当社の公式情報に基づいてお答えしています
+• ホームページに記載されていない情報については、お答えできません
+• より詳細な情報が必要な場合は、直接お問い合わせください
+
 ご不明な点や追加でお聞きになりたいことがございましたら、お気軽にお尋ねください。初回相談は無料で承っております。
 
 📞 **お問い合わせ先：**
 • 電話: 03-1234-5678
-• メール: info@allgens.co.jp"""
+• メール: contact@example.com"""
         
         # 料金に関する質問
         elif any(keyword in message_lower for keyword in ['料金', '価格', '費用', 'いくら', 'コスト']):
@@ -596,13 +605,17 @@ AllGensはAI技術を活用した企業向けソリューションを提供し�
                     response += f"• {item['content']}\n\n"
                 response += f"""{form_info}
 
-詳細な料金については、お客様のご要望に応じて個別にお見積もりいたします。
+**重要事項：**
+• 上記の料金情報は当社の公式情報に基づいてお答えしています
+• 具体的な料金は、お客様のご要望・規模・期間により異なります
+• ホームページに記載されていない料金については、お答えできません
+• 詳細な料金については、お客様のご要望に応じて個別にお見積もりいたします
 
 ご不明な点や追加でお聞きになりたいことがございましたら、お気軽にお尋ねください。初回相談は無料で承っております。
 
 📞 **お問い合わせ先：**
 • 電話: 03-1234-5678
-• メール: info@allgens.co.jp"""
+• メール: contact@example.com"""
                 return response
         
         # サービスに関する質問
@@ -618,11 +631,17 @@ AllGensはAI技術を活用した企業向けソリューションを提供し�
                     response += f"• {item['content']}\n\n"
                 response += f"""{form_info}
 
+**重要事項：**
+• 上記のサービス情報は当社の公式情報に基づいてお答えしています
+• ホームページに記載されていないサービスについては、お答えできません
+• 各サービスの詳細な内容については、個別にご相談ください
+• お客様のご要望に応じたカスタマイズも可能です
+
 ご不明な点や追加でお聞きになりたいことがございましたら、お気軽にお尋ねください。初回相談は無料で承っております。
 
 📞 **お問い合わせ先：**
 • 電話: 03-1234-5678
-• メール: info@allgens.co.jp"""
+• メール: contact@example.com"""
                 return response
         
         # 連絡先に関する質問
@@ -638,15 +657,21 @@ AllGensはAI技術を活用した企業向けソリューションを提供し�
                     response += f"{item['content']}\n\n"
                 response += f"""{form_info}
 
+**重要事項：**
+• 上記の連絡先情報は当社の公式情報に基づいてお答えしています
+• ホームページに記載されていない連絡先については、お答えできません
+• 営業時間外のお問い合わせについては、翌営業日にご回答いたします
+• 緊急の場合は、お電話にてお問い合わせください
+
 ご不明な点や追加でお聞きになりたいことがございましたら、お気軽にお尋ねください。初回相談は無料で承っております。
 
 📞 **お問い合わせ先：**
 • 電話: 03-1234-5678
-• メール: info@allgens.co.jp"""
+• メール: contact@example.com"""
                 return response
         
         # 会社情報に関する質問
-        elif any(keyword in message_lower for keyword in ['会社', '企業', '概要', '情報', 'allgens', 'サンプル']):
+        elif any(keyword in message_lower for keyword in ['会社', '企業', '概要', '情報', 'techcorp', 'サンプル']):
             company_info = [item for item in relevant_info if item['category'] == 'company']
             if company_info:
                 response = f"""お問い合わせいただき、ありがとうございます！
@@ -658,17 +683,24 @@ AllGensはAI技術を活用した企業向けソリューションを提供し�
                     response += f"{item['content']}\n\n"
                 response += f"""{form_info}
 
+**重要事項：**
+• 上記の会社情報は当社の公式情報に基づいてお答えしています
+• ホームページに記載されていない会社情報については、お答えできません
+• より詳細な会社情報が必要な場合は、直接お問い合わせください
+• 当社はお客様のビジネス成功をサポートすることを使命としています
+
 ご不明な点や追加でお聞きになりたいことがございましたら、お気軽にお尋ねください。初回相談は無料で承っております。
 
 📞 **お問い合わせ先：**
 • 電話: 03-1234-5678
-• メール: info@allgens.co.jp"""
+• メール: contact@example.com"""
                 return response
         
-        # その他の質問（従来の形式）
+        # その他の質問（高精度版）
         else:
             context = format_context(relevant_info)
-            return f"""お問い合わせいただき、ありがとうございます！
+            if context and context != "関連する情報が見つかりませんでした。":
+                return f"""お問い合わせいただき、ありがとうございます！
 
 {context}
 
@@ -676,11 +708,38 @@ AllGensはAI技術を活用した企業向けソリューションを提供し�
 
 {form_info}
 
+**重要事項：**
+• 上記の情報は当社の公式情報に基づいてお答えしています
+• ホームページに記載されていない情報については、お答えできません
+• より詳細な情報が必要な場合は、直接お問い合わせください
+• 当社のサービス・料金・会社情報については、上記の内容をご参照ください
+
 ご不明な点や追加でお聞きになりたいことがございましたら、お気軽にお尋ねください。初回相談は無料で承っております。
 
 📞 **お問い合わせ先：**
 • 電話: 03-1234-5678
-• メール: info@allgens.co.jp"""
+• メール: contact@example.com"""
+            else:
+                # 関連情報が見つからない場合の制限された回答
+                return f"""お問い合わせいただき、ありがとうございます！
+
+申し訳ございませんが、お客様のご質問「{message}」について、当社のホームページに記載されている情報の中では、適切な回答を提供できません。
+
+**当社がお答えできる情報：**
+• 会社概要・代表者情報
+• 提供サービス（AI導入コンサルティング、システム運用サポート、ECマーケティング支援、システム開発）
+• 料金体系・お見積もり
+• 連絡先・アクセス情報
+• よくある質問（FAQ）
+
+{form_info}
+
+**お客様のご質問について：**
+より具体的なご質問や、上記の情報に関する詳細なご相談がございましたら、お気軽にお尋ねください。初回相談は無料で承っております。
+
+📞 **お問い合わせ先：**
+• 電話: 03-1234-5678
+• メール: contact@example.com"""
 
 def run_server(port=8000):
     """サーバーを起動"""

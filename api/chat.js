@@ -214,11 +214,11 @@ async function generateAIResponse(message, formData = {}, apiKey) {
  * @returns {string} - システムプロンプト
  */
 function buildSystemPrompt(formData) {
-  return `あなたはallgensという企業のAIアシスタントです。お問い合わせフォームの入力サポートを担当しています。
+  return `あなたはAIアシスタントです。お問い合わせフォームの入力サポートを担当しています。
 
 【企業情報】
-- 会社名: allgens
-- 連絡先: 03-1234-5678 / info@allgens.co.jp
+- 会社名: TechCorp
+- 連絡先: 03-1234-5678 / contact@example.com
 - 営業時間: 平日 9:00-18:00
 
 【提供サービス】
@@ -318,7 +318,7 @@ function generateFallbackResponse(message, formData) {
   // 連絡先関連の質問
   if (lowerMessage.includes('連絡先') || lowerMessage.includes('電話') || lowerMessage.includes('メール')) {
     return `📞 **電話番号**: 03-1234-5678
-📧 **メール**: info@allgens.co.jp
+📧 **メール**: contact@example.com
 🕒 **営業時間**: 平日 9:00-18:00
 📍 **所在地**: 〒100-0001 東京都千代田区千代田1-1-1 バーチャルオフィス
 
@@ -354,7 +354,7 @@ function generateFallbackResponse(message, formData) {
 
 📞 **直接のお問い合わせも可能です：**
 • 電話: 03-1234-5678
-• メール: info@allgens.co.jp`;
+• メール: contact@example.com`;
 }
 
 /**
@@ -379,7 +379,7 @@ ${formData.company ? `会社名: ${formData.company}` : ''}
 
 📞 **お問い合わせ先：**
 • 電話: 03-1234-5678
-• メール: info@allgens.co.jp`;
+• メール: contact@example.com`;
   }
   
   // コンテキストがない場合は通常のモック応答
