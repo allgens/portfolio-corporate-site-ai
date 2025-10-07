@@ -18,18 +18,31 @@
 
 /* サイズ切り替え用のクラス */
 .chatbot-container.compact {
-    max-width: 400px !important;
-    height: 600px !important;
+    max-width: 320px !important;
+    height: 480px !important;
+    /* フォームの邪魔をしない最小表示 */
 }
 
 .chatbot-container.large {
-    max-width: 600px !important;
-    height: 800px !important;
+    max-width: 90vw !important;
+    height: 90vh !important;
+    /* 入力欄に被ってもOKの最大表示 */
+    z-index: 1000 !important;
+    position: fixed !important;
+    top: 50% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) !important;
+    border-radius: 20px !important;
 }
 
 .chatbot-container:hover {
     box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
     transform: translateY(-2px);
+}
+
+.chatbot-container.large:hover {
+    transform: translate(-50%, -50%) !important;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
 }
 
 /* チャットボットヘッダー */
@@ -755,13 +768,19 @@
 /* デスクトップ専用のサイズ設定 */
 @media (min-width: 769px) {
     .chatbot-container.compact {
-        max-width: 400px !important;
-        height: 600px !important;
+        max-width: 320px !important;
+        height: 480px !important;
     }
 
     .chatbot-container.large {
-        max-width: 600px !important;
-        height: 800px !important;
+        max-width: 90vw !important;
+        height: 90vh !important;
+        z-index: 1000 !important;
+        position: fixed !important;
+        top: 50% !important;
+        left: 50% !important;
+        transform: translate(-50%, -50%) !important;
+        border-radius: 20px !important;
     }
 }
 
@@ -774,15 +793,21 @@
     }
     
     .chatbot-container.compact {
-        max-width: 85vw;
-        height: 70vh;
-        max-height: 500px;
+        max-width: 280px;
+        height: 400px;
+        max-height: 400px;
     }
     
     .chatbot-container.large {
-        max-width: 98vw;
+        max-width: 95vw;
         height: 85vh;
         max-height: 700px;
+        z-index: 1000 !important;
+        position: fixed !important;
+        top: 50% !important;
+        left: 50% !important;
+        transform: translate(-50%, -50%) !important;
+        border-radius: 15px !important;
     }
     
     .message-bubble {
@@ -804,6 +829,30 @@
     .chatbot-container {
         max-width: 100vw;
         height: 85vh;
+        border-radius: 0;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 1000;
+    }
+    
+    .chatbot-container.compact {
+        max-width: 250px;
+        height: 350px;
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        top: auto;
+        left: auto;
+        transform: none;
+        border-radius: 15px;
+    }
+    
+    .chatbot-container.large {
+        max-width: 100vw;
+        height: 100vh;
         border-radius: 0;
         position: fixed;
         top: 0;
