@@ -11,46 +11,31 @@ const { createKnowledgeBase, searchRelevantInfo, formatContext, generateRAGPromp
 
 // VercelのServerless Function用のエクスポート
 module.exports = async function handler(req, res) {
-  // エラーハンドリングの追加
   try {
-  // デバッグログの開始
-  console.log('🚀 Chat API called:', {
-    method: req.method,
-    url: req.url,
-    headers: req.headers,
-    body: req.body ? JSON.stringify(req.body).substring(0, 200) + '...' : 'No body'
-  });
+    // CORS設定：フロントエンドからのリクエストを許可
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
-  // CORS設定：フロントエンドからのリクエストを許可
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    // OPTIONSリクエスト（プリフライト）への対応
+    if (req.method === 'OPTIONS') {
+      res.status(200).end();
+      return;
+    }
 
-  // OPTIONSリクエスト（プリフライト）への対応
-  if (req.method === 'OPTIONS') {
-    console.log('✅ CORS preflight request handled');
-    res.status(200).end();
-    return;
-  }
+    // POSTリクエストのみを許可
+    if (req.method !== 'POST') {
+      res.status(405).json({ 
+        error: 'Method not allowed. Only POST requests are supported.' 
+      });
+      return;
+    }
 
-  // POSTリクエストのみを許可
-  if (req.method !== 'POST') {
-    console.log('❌ Method not allowed:', req.method);
-    res.status(405).json({ 
-      error: 'Method not allowed. Only POST requests are supported.' 
-    });
-    return;
-  }
-
-  try {
     // リクエストボディからメッセージとフォームデータを取得
-    const { message, formData, context: requestContext } = req.body;
-
-    console.log('📝 Request data:', { message, formData, requestContext });
+    const { message, formData } = req.body;
 
     // メッセージが存在するかチェック
     if (!message || typeof message !== 'string') {
-      console.log('❌ Invalid message:', message);
       res.status(400).json({ 
         error: 'Message is required and must be a string.' 
       });
@@ -60,59 +45,31 @@ module.exports = async function handler(req, res) {
     // OpenAI APIキーを環境変数から取得
     const openaiApiKey = process.env.OPENAI_API_KEY;
     
-    console.log('🔑 API Key status:', openaiApiKey ? 'Present' : 'Missing');
-    console.log('🌍 Environment:', process.env.NODE_ENV || 'development');
-    
     if (!openaiApiKey) {
-      console.error('❌ OpenAI API key is not configured');
-      console.log('🔄 Falling back to RAG mock response...');
+      console.log('🔄 OpenAI API key not configured, using RAG mock response...');
       
       // フォールバック：RAG対応のモック応答を返す
-      try {
-        const knowledgeBase = createKnowledgeBase();
-        const relevantInfo = searchRelevantInfo(message, knowledgeBase, 3);
-        const context = formatContext(relevantInfo);
-        const mockResponse = generateRAGMockResponse(message, context, formData);
-        
-        res.status(200).json({
-          message: mockResponse,
-          timestamp: new Date().toISOString(),
-          success: true,
-          source: 'rag-mock'
-        });
-        return;
-      } catch (fallbackError) {
-        console.error('💥 RAG mock also failed:', fallbackError);
-        res.status(500).json({
-          error: 'AI service temporarily unavailable. Please try again later.',
-          timestamp: new Date().toISOString()
-        });
-        return;
-      }
+      const knowledgeBase = createKnowledgeBase();
+      const relevantInfo = searchRelevantInfo(message, knowledgeBase, 3);
+      const context = formatContext(relevantInfo);
+      const mockResponse = generateRAGMockResponse(message, context, formData);
+      
+      res.status(200).json({
+        message: mockResponse,
+        timestamp: new Date().toISOString(),
+        success: true,
+        source: 'rag-mock'
+      });
+      return;
     }
 
-    console.log('🤖 Generating AI response with RAG...');
-    
-    // ナレッジベースを作成
-    const knowledgeBase = createKnowledgeBase();
-    console.log('📚 Knowledge base created with', knowledgeBase.length, 'items');
-    
-    // 関連情報を検索
-    const relevantInfo = searchRelevantInfo(message, knowledgeBase, 3);
-    console.log('🔍 Found', relevantInfo.length, 'relevant information items');
-    
-    // コンテキストを整形
-    const context = formatContext(relevantInfo);
-    console.log('📝 Context formatted:', context.substring(0, 200) + '...');
-    
-    // RAG用のプロンプトを生成
-    const ragPrompt = generateRAGPrompt(message, context, formData);
-    console.log('💬 RAG prompt generated');
-    
     // AI応答を生成（RAG対応）
+    const knowledgeBase = createKnowledgeBase();
+    const relevantInfo = searchRelevantInfo(message, knowledgeBase, 3);
+    const context = formatContext(relevantInfo);
+    const ragPrompt = generateRAGPrompt(message, context, formData);
+    
     const aiResponse = await generateAIResponse(ragPrompt, formData, openaiApiKey);
-
-    console.log('✅ AI Response generated:', aiResponse.substring(0, 100) + '...');
 
     // 成功レスポンスを返す
     res.status(200).json({
@@ -122,20 +79,15 @@ module.exports = async function handler(req, res) {
     });
 
   } catch (error) {
-    // エラーログを出力
     console.error('💥 Chat API Error:', error);
-    console.log('🔄 Attempting fallback to mock response...');
-
+    
+    // フォールバック：RAG対応のモック応答を試行
     try {
-      // フォールバック：RAG対応のモック応答を試行
       const { message, formData } = req.body;
       
-      // ナレッジベースから関連情報を検索
       const knowledgeBase = createKnowledgeBase();
       const relevantInfo = searchRelevantInfo(message, knowledgeBase, 2);
       const context = formatContext(relevantInfo);
-      
-      // RAG対応のモック応答を生成
       const mockResponse = generateRAGMockResponse(message, context, formData);
       
       res.status(200).json({
@@ -147,7 +99,6 @@ module.exports = async function handler(req, res) {
     } catch (fallbackError) {
       console.error('💥 Fallback also failed:', fallbackError);
       
-      // 最終的なエラーレスポンス
       res.status(500).json({
         error: 'AI service temporarily unavailable. Please try again later.',
         timestamp: new Date().toISOString(),
@@ -155,7 +106,7 @@ module.exports = async function handler(req, res) {
       });
     }
   }
-}
+};
 
 /**
  * OpenAI APIを使用してAI応答を生成する関数
@@ -177,7 +128,7 @@ async function generateAIResponse(message, formData = {}, apiKey) {
         'Authorization': `Bearer ${apiKey}`
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini', // 低コストで高性能なモデル
+        model: 'gpt-4o-mini',
         messages: [
           {
             role: 'system',
@@ -188,9 +139,9 @@ async function generateAIResponse(message, formData = {}, apiKey) {
             content: message
           }
         ],
-        max_tokens: 500, // 応答の最大トークン数
-        temperature: 0.7, // 創造性のレベル（0-1）
-        stream: false // ストリーミングは無効
+        max_tokens: 500,
+        temperature: 0.7,
+        stream: false
       })
     });
 
@@ -214,15 +165,12 @@ async function generateAIResponse(message, formData = {}, apiKey) {
 
   } catch (error) {
     console.error('OpenAI API Error:', error);
-    
-    // フォールバック応答を返す
-    return generateFallbackResponse(message, formData);
+    throw error;
   }
 }
 
 /**
- * システムプロンプトを構築する関数
- * AIに与える指示とコンテキストを定義
+ * システムプロンプトの構築
  * @param {object} formData - フォームの入力データ
  * @returns {string} - システムプロンプト
  */
@@ -240,12 +188,6 @@ function buildSystemPrompt(formData) {
 - ECマーケティング支援
 - システム開発
 
-【特徴】
-- 初回相談無料
-- 24時間365日の監視体制
-- 中小企業様もお気軽にご利用可能
-- 導入期間は3ヶ月から6ヶ月程度
-
 【現在のフォーム入力状況】
 - お名前: ${formData.name || '未入力'}
 - 会社名: ${formData.company || '未入力'}
@@ -260,18 +202,11 @@ function buildSystemPrompt(formData) {
 3. フォーム入力の進捗に応じて適切なアドバイス
 4. サービス選択や料金に関する質問には具体的に回答
 5. メッセージ下書きの作成をサポート
-6. 長すぎず、読みやすい形式で回答
-
-【禁止事項】
-- 他の企業の情報を提供
-- 不正確な情報の提供
-- 攻撃的または不適切な表現`;
+6. 長すぎず、読みやすい形式で回答`;
 }
 
 /**
- * サービス名を取得する関数
- * @param {string} serviceKey - サービスのキー
- * @returns {string} - サービス名
+ * サービス名を取得
  */
 function getServiceName(serviceKey) {
   const services = {
@@ -285,17 +220,30 @@ function getServiceName(serviceKey) {
 }
 
 /**
- * フォールバック応答を生成する関数
- * OpenAI APIが利用できない場合の代替応答
- * @param {string} message - ユーザーのメッセージ
- * @param {object} formData - フォームの入力データ
- * @returns {string} - フォールバック応答
+ * RAG対応のモック応答を生成
  */
-function generateFallbackResponse(message, formData) {
+function generateRAGMockResponse(message, context, formData) {
   const lowerMessage = message.toLowerCase();
-  
-  // サービス関連の質問
-  if (lowerMessage.includes('サービス') || lowerMessage.includes('service')) {
+
+  // 挨拶
+  if (anyWord(lowerMessage, ['こんにちは', 'hello', 'はじめまして', 'おはよう', 'こんばんは'])) {
+    return "こんにちは！AIアシスタントです。お問い合わせフォームの入力をお手伝いさせていただきます。どのようなご相談でしょうか？";
+  }
+
+  // 連絡先情報
+  if (anyWord(lowerMessage, ['連絡先', '電話', 'メール', '住所', 'アクセス', '会社情報'])) {
+    return `連絡先情報をご案内いたします。
+
+📞 **電話番号**: 03-1234-5678
+📧 **メールアドレス**: contact@example.com
+📍 **所在地**: 〒100-0001 東京都千代田区千代田1-1-1 バーチャルオフィス
+🕒 **営業時間**: 平日 9:00-18:00
+
+お気軽にお問い合わせください！`;
+  }
+
+  // サービス関連
+  if (anyWord(lowerMessage, ['サービス', 'service', '料金', '価格', 'プラン'])) {
     return `当社では以下のサービスを提供しています：
 
 🤖 **AI導入コンサルティング**
@@ -316,42 +264,27 @@ function generateFallbackResponse(message, formData) {
 
 どのサービスにご興味がございますか？`;
   }
-  
-  // 料金関連の質問
-  if (lowerMessage.includes('料金') || lowerMessage.includes('価格') || lowerMessage.includes('費用')) {
-    return `料金については、プロジェクトの規模や内容により異なります。
 
-📋 **初回相談は無料**で承っております
-💰 **お見積もり**は個別にご提案いたします
-📞 **詳細**はお気軽にお問い合わせください
+  // コンテキストがある場合はそれを活用
+  if (context && context !== "関連する情報が見つかりませんでした。") {
+    return `お問い合わせいただき、ありがとうございます！
 
-お客様のご要望をお聞かせいただければ、最適なプランをご提案いたします。`;
+${context}
+
+上記の情報を参考に、お客様のご質問にお答えいたします。
+
+**重要事項：**
+• 上記の情報は当社の公式情報に基づいてお答えしています
+• ホームページに記載されていない情報については、お答えできません
+• より詳細な情報が必要な場合は、直接お問い合わせください
+
+ご不明な点や追加でお聞きになりたいことがございましたら、お気軽にお尋ねください。初回相談は無料で承っております。
+
+📞 **お問い合わせ先：**
+• 電話: 03-1234-5678
+• メール: contact@example.com`;
   }
-  
-  // 連絡先関連の質問
-  if (lowerMessage.includes('連絡先') || lowerMessage.includes('電話') || lowerMessage.includes('メール')) {
-    return `📞 **電話番号**: 03-1234-5678
-📧 **メール**: contact@example.com
-🕒 **営業時間**: 平日 9:00-18:00
-📍 **所在地**: 〒100-0001 東京都千代田区千代田1-1-1 バーチャルオフィス
 
-お気軽にお問い合わせください！`;
-  }
-  
-  // フォーム入力のヘルプ
-  if (lowerMessage.includes('フォーム') || lowerMessage.includes('入力') || lowerMessage.includes('記入')) {
-    return `お問い合わせフォームの入力についてサポートいたします！
-
-📝 **入力のコツ**:
-- お名前とメールアドレスは必須項目です
-- 会社名は任意ですが、記載いただくとより具体的なご提案ができます
-- お問い合わせ内容は具体的にご記入ください
-
-💡 **サービス選択でお悩みの場合は**、お客様の業界や課題をお教えください。最適なサービスをご提案いたします。
-
-何かご不明な点がございましたら、お気軽にお尋ねください！`;
-  }
-  
   // デフォルト応答
   return `ありがとうございます！お問い合わせ内容を確認いたします。
 
@@ -363,48 +296,12 @@ function generateFallbackResponse(message, formData) {
 • 料金・連絡先情報の案内
 • フォーム入力のサポート
 
-具体的なご質問やご不明な点がございましたら、お気軽にお尋ねください。初回相談は無料で承っております。
-
-📞 **直接のお問い合わせも可能です：**
-• 電話: 03-1234-5678
-• メール: contact@example.com`;
+具体的なご質問やご不明な点がございましたら、お気軽にお尋ねください。初回相談は無料で承っております。`;
 }
 
 /**
- * RAG対応のモック応答を生成
- * コンテキスト情報を活用してより適切な応答を生成
+ * 文字列に指定された単語が含まれているかチェック
  */
-function generateRAGMockResponse(message, context, formData) {
-  const lowerMessage = message.toLowerCase();
-  
-  // コンテキストに基づいた応答を生成
-  if (context.includes('関連情報') && context !== '関連する情報が見つかりませんでした。') {
-    return `お問い合わせいただき、ありがとうございます！
-
-${context}
-
-上記の情報を参考に、お客様のご質問にお答えいたします。
-
-${formData.name ? `お名前: ${formData.name}様` : ''}
-${formData.company ? `会社名: ${formData.company}` : ''}
-
-ご不明な点や追加でお聞きになりたいことがございましたら、お気軽にお尋ねください。初回相談は無料で承っております。
-
-📞 **お問い合わせ先：**
-• 電話: 03-1234-5678
-• メール: contact@example.com`;
-  }
-  
-  // コンテキストがない場合は通常のモック応答
-  return generateMockResponse(message, formData);
-}
-
-// エラーハンドリングの追加
-} catch (error) {
-  console.error('💥 Unexpected error in handler:', error);
-  return res.status(500).json({
-    success: false,
-    message: 'サーバー内部エラーが発生しました。しばらく時間をおいてから再度お試しください。',
-    error: process.env.NODE_ENV === 'development' ? error.message : undefined
-  });
+function anyWord(text, words) {
+  return words.some(word => text.includes(word));
 }
