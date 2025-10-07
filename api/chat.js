@@ -10,7 +10,7 @@
 const { createKnowledgeBase, searchRelevantInfo, formatContext, generateRAGPrompt } = require('./rag-utils');
 
 // VercelのServerless Function用のエクスポート
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   // エラーハンドリングの追加
   try {
   // デバッグログの開始
@@ -61,21 +61,34 @@ export default async function handler(req, res) {
     const openaiApiKey = process.env.OPENAI_API_KEY;
     
     console.log('🔑 API Key status:', openaiApiKey ? 'Present' : 'Missing');
+    console.log('🌍 Environment:', process.env.NODE_ENV || 'development');
     
     if (!openaiApiKey) {
       console.error('❌ OpenAI API key is not configured');
-      console.log('🔄 Falling back to mock response...');
+      console.log('🔄 Falling back to RAG mock response...');
       
-      // フォールバック：モック応答を返す
-      const mockResponse = generateMockResponse(message, formData);
-      
-      res.status(200).json({
-        message: mockResponse,
-        timestamp: new Date().toISOString(),
-        success: true,
-        source: 'mock'
-      });
-      return;
+      // フォールバック：RAG対応のモック応答を返す
+      try {
+        const knowledgeBase = createKnowledgeBase();
+        const relevantInfo = searchRelevantInfo(message, knowledgeBase, 3);
+        const context = formatContext(relevantInfo);
+        const mockResponse = generateRAGMockResponse(message, context, formData);
+        
+        res.status(200).json({
+          message: mockResponse,
+          timestamp: new Date().toISOString(),
+          success: true,
+          source: 'rag-mock'
+        });
+        return;
+      } catch (fallbackError) {
+        console.error('💥 RAG mock also failed:', fallbackError);
+        res.status(500).json({
+          error: 'AI service temporarily unavailable. Please try again later.',
+          timestamp: new Date().toISOString()
+        });
+        return;
+      }
     }
 
     console.log('🤖 Generating AI response with RAG...');

@@ -45,6 +45,16 @@ Value: your-openai-api-key-here
 Environment: Production, Preview, Development
 ```
 
+**重要**: 環境変数を設定しない場合、チャットボットはRAG対応のモック応答を使用します。
+
+#### 環境変数の確認方法
+
+Vercelのデプロイ後、以下の方法で環境変数が正しく設定されているか確認できます：
+
+1. Vercelダッシュボードの"Functions"タブでAPIのログを確認
+2. ログに `🔑 API Key status: Present` が表示されることを確認
+3. `🔑 API Key status: Missing` の場合は環境変数の設定を再確認
+
 #### ローカル開発用の設定
 
 ```bash
