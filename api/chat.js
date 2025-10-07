@@ -44,9 +44,9 @@ module.exports = async function handler(req, res) {
 
   try {
     // リクエストボディからメッセージとフォームデータを取得
-    const { message, formData, context } = req.body;
+    const { message, formData, context: requestContext } = req.body;
 
-    console.log('📝 Request data:', { message, formData, context });
+    console.log('📝 Request data:', { message, formData, requestContext });
 
     // メッセージが存在するかチェック
     if (!message || typeof message !== 'string') {
