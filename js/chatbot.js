@@ -13,6 +13,7 @@ class ChatbotAssistant {
         this.sizeStorageKey = 'chatbot_size';
         this.isComposing = false; // 日本語変換状態を管理
         this.currentSize = this.loadSizePreference(); // サイズ設定を読み込み
+        this.savedScrollY = 0; // スクロール位置を保存
         
         this.init();
     }
@@ -21,6 +22,9 @@ class ChatbotAssistant {
      * チャットボットの初期化
      */
     init() {
+        // 初期スクロール位置を保存
+        this.savedScrollY = window.scrollY;
+        
         this.createChatbotHTML();
         this.applySizePreference();
         this.bindEvents();
@@ -1187,21 +1191,23 @@ class ChatbotAssistant {
      */
     toggleBodyScroll(disable) {
         if (disable) {
-            // スクロールを無効にする
+            // 現在のスクロール位置を保存
+            this.savedScrollY = window.scrollY;
+            
+            // スクロールを無効にする（位置は保持）
             document.body.style.overflow = 'hidden';
             document.body.style.position = 'fixed';
             document.body.style.width = '100%';
-            document.body.style.top = `-${window.scrollY}px`;
+            document.body.style.top = `-${this.savedScrollY}px`;
         } else {
-            // スクロールを有効にする
-            const scrollY = document.body.style.top;
+            // スクロールを有効にする（保存した位置に戻す）
             document.body.style.overflow = '';
             document.body.style.position = '';
             document.body.style.width = '';
             document.body.style.top = '';
-            if (scrollY) {
-                window.scrollTo(0, parseInt(scrollY || '0') * -1);
-            }
+            
+            // 保存していたスクロール位置に戻す
+            window.scrollTo(0, this.savedScrollY);
         }
     }
 
