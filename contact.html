@@ -388,6 +388,23 @@
 
     <!-- JavaScript -->
     <script src="./js/main.js"></script>
-    <script src="./js/chatbot.js"></script>
+    
+    <!-- Mobile対応箇所: モバイル用チャットボット -->
+    <script>
+        // モバイルデバイスかどうかを判定
+        function isMobileDevice() {
+            return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
+                   window.innerWidth <= 768;
+        }
+        
+        // デバイスに応じて適切なチャットボットを読み込み
+        if (isMobileDevice()) {
+            console.log('📱 Loading mobile chatbot...');
+            document.write('<script src="./js/chatbot-mobile.js"><\/script>');
+        } else {
+            console.log('💻 Loading desktop chatbot...');
+            document.write('<script src="./js/chatbot.js"><\/script>');
+        }
+    </script>
 </body>
 </html>

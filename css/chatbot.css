@@ -495,8 +495,10 @@
     cursor: pointer;
     box-shadow: 0 8px 25px rgba(56, 189, 248, 0.3);
     transition: all 0.3s ease;
-    z-index: 1000;
-    display: none;
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     /* iOS Safari対応 */
     -webkit-appearance: none !important;
     -webkit-tap-highlight-color: transparent !important;
@@ -855,6 +857,9 @@
         left: auto;
         transform: none;
         border-radius: 15px;
+        /* Mobile対応箇所: モバイルでの確実な表示 */
+        z-index: 9999 !important;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3) !important;
     }
     
     .chatbot-container.large {
