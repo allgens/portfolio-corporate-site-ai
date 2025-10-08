@@ -1456,17 +1456,37 @@ select:focus {
     .contact-form input[type="email"],
     .contact-form input[type="tel"],
     .contact-form textarea {
-        padding: 18px 20px !important;
+        padding: 20px 24px !important;
         font-size: 16px !important;
         border-radius: 12px !important;
-        min-height: 56px !important;
+        min-height: 60px !important;
+        /* iOS Safari対応 */
+        -webkit-appearance: none !important;
+        -webkit-tap-highlight-color: transparent !important;
+        touch-action: manipulation !important;
     }
     
     .contact-form button {
-        padding: 20px 24px !important;
+        padding: 22px 24px !important;
         font-size: 1.125rem !important;
-        min-height: 60px !important;
+        min-height: 64px !important;
         border-radius: 12px !important;
+        /* iOS Safari対応 */
+        -webkit-appearance: none !important;
+        -webkit-tap-highlight-color: transparent !important;
+        touch-action: manipulation !important;
+        cursor: pointer !important;
+    }
+    
+    .contact-form input[type="checkbox"] {
+        width: 24px !important;
+        height: 24px !important;
+        margin-top: 8px !important;
+        accent-color: #38BDF8 !important;
+        /* iOS Safari対応 */
+        -webkit-appearance: none !important;
+        -webkit-tap-highlight-color: transparent !important;
+        touch-action: manipulation !important;
     }
 }
 

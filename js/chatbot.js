@@ -126,8 +126,25 @@ class ChatbotAssistant {
      * イベントリスナーの設定
      */
     bindEvents() {
-        // 送信ボタン
-        document.getElementById('chatbot-send').addEventListener('click', () => {
+        // 送信ボタン（モバイル対応）
+        const sendBtn = document.getElementById('chatbot-send');
+        
+        // クリックイベント
+        sendBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            this.sendMessage();
+        });
+        
+        // タッチイベント（モバイル対応）
+        sendBtn.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+        });
+        
+        sendBtn.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
             this.sendMessage();
         });
 
@@ -157,9 +174,25 @@ class ChatbotAssistant {
             this.autoResizeTextarea(e.target);
         });
 
-        // クイックアクションボタン
+        // クイックアクションボタン（モバイル対応）
         document.querySelectorAll('.quick-action-btn').forEach(btn => {
+            // クリックイベント
             btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const action = e.target.dataset.action;
+                this.handleQuickAction(action);
+            });
+            
+            // タッチイベント（モバイル対応）
+            btn.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+            });
+            
+            btn.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
                 const action = e.target.dataset.action;
                 this.handleQuickAction(action);
             });
@@ -167,23 +200,74 @@ class ChatbotAssistant {
 
         // 閉じるボタンは削除済み
 
-        // サイズ切り替えボタン
+        // サイズ切り替えボタン（モバイル対応）
         const sizeToggleBtn = document.getElementById('chatbot-size-toggle');
         if (sizeToggleBtn) {
-            sizeToggleBtn.addEventListener('click', () => {
+            // クリックイベント
+            sizeToggleBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                this.toggleSize();
+            });
+            
+            // タッチイベント（モバイル対応）
+            sizeToggleBtn.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+            });
+            
+            sizeToggleBtn.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
                 this.toggleSize();
             });
         }
 
-        // 再起動ボタン
-        document.getElementById('chatbot-restart').addEventListener('click', () => {
-            this.restartChatbot();
-        });
+        // 再起動ボタン（モバイル対応）
+        const restartBtn = document.getElementById('chatbot-restart');
+        if (restartBtn) {
+            // クリックイベント
+            restartBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                this.restartChatbot();
+            });
+            
+            // タッチイベント（モバイル対応）
+            restartBtn.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+            });
+            
+            restartBtn.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                this.restartChatbot();
+            });
+        }
 
         // フローティングボタン（モバイル用）
-        document.getElementById('chatbot-floating-btn').addEventListener('click', () => {
-            this.toggleChatbot();
-        });
+        const floatingBtn = document.getElementById('chatbot-floating-btn');
+        if (floatingBtn) {
+            // クリックイベント
+            floatingBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                this.toggleChatbot();
+            });
+            
+            // タッチイベント（モバイル対応）
+            floatingBtn.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+            });
+            
+            floatingBtn.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                this.toggleChatbot();
+            });
+        }
 
         // モーダル背景クリックで閉じる
         document.getElementById('chatbot-modal').addEventListener('click', (e) => {
