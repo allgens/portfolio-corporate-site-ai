@@ -27,7 +27,13 @@ class ChatbotAssistant {
         
         this.createChatbotHTML();
         this.applySizePreference();
-        this.bindEvents();
+        
+        // Mobile対応箇所: イベントリスナーを確実に設定
+        setTimeout(() => {
+            this.bindEvents();
+            console.log('Events bound successfully'); // デバッグ用
+        }, 100);
+        
         this.loadMessages();
         this.addInitialMessage();
         this.setupFormIntegration();
@@ -126,27 +132,49 @@ class ChatbotAssistant {
      * イベントリスナーの設定
      */
     bindEvents() {
-        // 送信ボタン（モバイル対応）
+        // 送信ボタン（モバイル対応強化）
         const sendBtn = document.getElementById('chatbot-send');
         
-        // クリックイベント
-        sendBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            this.sendMessage();
-        });
-        
-        // タッチイベント（モバイル対応）
-        sendBtn.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-        });
-        
-        sendBtn.addEventListener('touchend', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            this.sendMessage();
-        });
+        if (sendBtn) {
+            // クリックイベント
+            sendBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('Send button clicked'); // デバッグ用
+                this.sendMessage();
+            });
+            
+            // タッチイベント（モバイル対応）
+            sendBtn.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                sendBtn.style.opacity = '0.7'; // 視覚的フィードバック
+            });
+            
+            sendBtn.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                sendBtn.style.opacity = '1'; // 視覚的フィードバック
+                console.log('Send button touched'); // デバッグ用
+                this.sendMessage();
+            });
+            
+            // 追加のイベント処理（モバイル対応）
+            sendBtn.addEventListener('mousedown', (e) => {
+                e.preventDefault();
+                sendBtn.style.opacity = '0.7';
+            });
+            
+            sendBtn.addEventListener('mouseup', (e) => {
+                e.preventDefault();
+                sendBtn.style.opacity = '1';
+            });
+            
+            // フォーカス時の処理
+            sendBtn.addEventListener('focus', () => {
+                console.log('Send button focused'); // デバッグ用
+            });
+        }
 
         // 入力フィールド（Enterキーで送信）
         document.getElementById('chatbot-input').addEventListener('keydown', (e) => {
@@ -482,12 +510,17 @@ class ChatbotAssistant {
      * メッセージの送信
      */
     async sendMessage(message = null) {
+        console.log('sendMessage called with:', message); // デバッグ用
         const input = document.getElementById('chatbot-input');
         
         // メッセージが指定されていない場合は入力フィールドから取得
         if (!message) {
             message = input.value.trim();
-            if (!message || this.isLoading) return;
+            console.log('Input message:', message); // デバッグ用
+            if (!message || this.isLoading) {
+                console.log('Message empty or loading, returning'); // デバッグ用
+                return;
+            }
 
             // ユーザーメッセージを追加
             this.addMessage('user', message);
@@ -497,6 +530,7 @@ class ChatbotAssistant {
 
         // ローディング状態
         this.setLoading(true);
+        console.log('Loading state set to true'); // デバッグ用
         this.showTypingIndicator();
 
         try {
