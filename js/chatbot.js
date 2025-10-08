@@ -32,6 +32,14 @@ class ChatbotAssistant {
         setTimeout(() => {
             this.bindEvents();
             console.log('Events bound successfully'); // デバッグ用
+            
+            // 追加の初期化確認
+            setTimeout(() => {
+                this.verifyEventListeners();
+            }, 50);
+            
+            // DOM変更を監視してイベントリスナーを再設定
+            this.setupMutationObserver();
         }, 100);
         
         this.loadMessages();
@@ -129,6 +137,115 @@ class ChatbotAssistant {
     }
 
     /**
+     * DOM変更の監視設定
+     */
+    setupMutationObserver() {
+        const chatbotContainer = document.getElementById('chatbot-container');
+        if (!chatbotContainer) return;
+        
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                if (mutation.type === 'childList') {
+                    // 新しいクイックアクションボタンが追加された場合
+                    const addedNodes = Array.from(mutation.addedNodes);
+                    addedNodes.forEach((node) => {
+                        if (node.nodeType === Node.ELEMENT_NODE) {
+                            const quickActions = node.querySelectorAll ? node.querySelectorAll('.quick-action-btn') : [];
+                            if (quickActions.length > 0 || (node.classList && node.classList.contains('quick-action-btn'))) {
+                                console.log('🔄 Re-binding quick action events due to DOM changes');
+                                this.bindQuickActionEvents();
+                            }
+                        }
+                    });
+                }
+            });
+        });
+        
+        observer.observe(chatbotContainer, {
+            childList: true,
+            subtree: true
+        });
+    }
+
+    /**
+     * クイックアクションイベントの再設定
+     */
+    bindQuickActionEvents() {
+        const quickActionBtns = document.querySelectorAll('.quick-action-btn');
+        console.log('🔄 Re-binding quick action events for', quickActionBtns.length, 'buttons');
+        
+        quickActionBtns.forEach((btn, index) => {
+            // 既存のイベントリスナーを削除
+            const newBtn = btn.cloneNode(true);
+            btn.parentNode.replaceChild(newBtn, btn);
+            
+            // 新しいイベントリスナーを設定
+            this.setupQuickActionEventListeners(newBtn);
+        });
+    }
+
+    /**
+     * クイックアクションボタンのイベントリスナー設定
+     */
+    setupQuickActionEventListeners(btn) {
+        // クリックイベント
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('Quick action clicked:', btn.dataset.action);
+            const action = btn.dataset.action;
+            this.handleQuickAction(action);
+        });
+        
+        // タッチイベント
+        btn.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            btn.style.opacity = '0.7';
+        });
+        
+        btn.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            btn.style.opacity = '1';
+            console.log('Quick action touched:', btn.dataset.action);
+            const action = btn.dataset.action;
+            this.handleQuickAction(action);
+        });
+    }
+
+    /**
+     * イベントリスナーの確認
+     */
+    verifyEventListeners() {
+        console.log('🔍 Verifying event listeners...');
+        
+        // 送信ボタンの確認
+        const sendBtn = document.getElementById('chatbot-send');
+        if (sendBtn) {
+            console.log('✅ Send button found');
+        } else {
+            console.error('❌ Send button not found');
+        }
+        
+        // クイックアクションボタンの確認
+        const quickActions = document.querySelectorAll('.quick-action-btn');
+        console.log(`✅ Found ${quickActions.length} quick action buttons`);
+        
+        quickActions.forEach((btn, index) => {
+            console.log(`Button ${index}: action="${btn.dataset.action}"`);
+        });
+        
+        // 入力フィールドの確認
+        const input = document.getElementById('chatbot-input');
+        if (input) {
+            console.log('✅ Input field found');
+        } else {
+            console.error('❌ Input field not found');
+        }
+    }
+
+    /**
      * イベントリスナーの設定
      */
     bindEvents() {
@@ -202,29 +319,8 @@ class ChatbotAssistant {
             this.autoResizeTextarea(e.target);
         });
 
-        // クイックアクションボタン（モバイル対応）
-        document.querySelectorAll('.quick-action-btn').forEach(btn => {
-            // クリックイベント
-            btn.addEventListener('click', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                const action = e.target.dataset.action;
-                this.handleQuickAction(action);
-            });
-            
-            // タッチイベント（モバイル対応）
-            btn.addEventListener('touchstart', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-            });
-            
-            btn.addEventListener('touchend', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                const action = e.target.dataset.action;
-                this.handleQuickAction(action);
-            });
-        });
+        // クイックアクションボタン（モバイル対応強化）
+        this.bindQuickActionEvents();
 
         // 閉じるボタンは削除済み
 
@@ -840,7 +936,11 @@ class ChatbotAssistant {
      * クイックアクションの処理
      */
     async handleQuickAction(action) {
-        console.log('🎯 Quick action triggered:', action);
+        console.log('🎯 Quick action triggered:', action); // デバッグ用
+        if (!action) {
+            console.error('No action provided to handleQuickAction'); // デバッグ用
+            return;
+        }
         this.markSuggestionShown(action);
 
         switch (action) {
@@ -1372,8 +1472,18 @@ class ChatbotAssistant {
 
 // ページ読み込み完了後にチャットボットを初期化
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('🚀 DOM Content Loaded - Initializing chatbot...');
+    
     // チャットボットの初期化
     window.chatbot = new ChatbotAssistant();
+    
+    // Mobile対応箇所: 追加の初期化確認
+    setTimeout(() => {
+        console.log('🔧 Additional initialization check...');
+        if (window.chatbot) {
+            window.chatbot.verifyEventListeners();
+        }
+    }, 500);
     
     // デバッグ用（開発時のみ）
     if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
