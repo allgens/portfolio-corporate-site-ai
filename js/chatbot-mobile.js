@@ -47,8 +47,8 @@
                         </div>
                     </div>
                     <div class="chatbot-controls">
-                        <button class="chatbot-size-toggle" id="chatbot-size-toggle" title="サイズ変更">
-                            <i class="fas fa-expand"></i>
+                        <button class="chatbot-size-toggle" id="chatbot-size-toggle" title="チャットボットを閉じる">
+                            <i class="fas fa-times"></i>
                         </button>
                         <button class="chatbot-control-btn" id="chatbot-restart" title="会話をリセット">
                             <i class="fas fa-redo"></i>
@@ -251,6 +251,33 @@
             console.log('✅ Reset button events bound');
         }
 
+        // Mobile対応箇所: チャットボット内のスクロールイベントを制御
+        const messagesContainer = document.getElementById('chatbot-messages');
+        if (messagesContainer) {
+            messagesContainer.addEventListener('touchmove', function(e) {
+                // チャットボット内でのスクロールは許可
+                e.stopPropagation();
+            }, { passive: false });
+            
+            messagesContainer.addEventListener('wheel', function(e) {
+                // マウスホイールでのスクロールも制御
+                e.stopPropagation();
+            }, { passive: false });
+            
+            console.log('✅ Chatbot scroll events controlled');
+        }
+
+        // Mobile対応箇所: チャットボット全体でのタッチイベント制御
+        const chatbotContainer = document.getElementById('chatbot-container');
+        if (chatbotContainer) {
+            chatbotContainer.addEventListener('touchmove', function(e) {
+                // チャットボット内でのタッチは背景に伝播させない
+                e.stopPropagation();
+            }, { passive: false });
+            
+            console.log('✅ Chatbot container touch events controlled');
+        }
+
         console.log('✅ Mobile Chatbot: All events bound successfully');
     }
 
@@ -264,11 +291,38 @@
         if (chatbot.isOpen) {
             container.style.display = 'block';
             floatingBtn.style.display = 'none';
+            // Mobile対応箇所: 背景スクロールを防止
+            preventBackgroundScroll(true);
             console.log('✅ Chatbot opened');
         } else {
             container.style.display = 'none';
             floatingBtn.style.display = 'flex';
+            // Mobile対応箇所: 背景スクロールを有効化
+            preventBackgroundScroll(false);
             console.log('✅ Chatbot closed');
+        }
+    }
+
+    // 背景スクロールの制御
+    function preventBackgroundScroll(prevent) {
+        if (prevent) {
+            // 現在のスクロール位置を保存
+            chatbot.savedScrollY = window.scrollY;
+            // 背景スクロールを防止
+            document.body.style.overflow = 'hidden';
+            document.body.style.position = 'fixed';
+            document.body.style.width = '100%';
+            document.body.style.top = `-${chatbot.savedScrollY}px`;
+            console.log('🚫 Background scroll prevented');
+        } else {
+            // 背景スクロールを有効化
+            document.body.style.overflow = '';
+            document.body.style.position = '';
+            document.body.style.width = '';
+            document.body.style.top = '';
+            // スクロール位置を復元
+            window.scrollTo(0, chatbot.savedScrollY);
+            console.log('✅ Background scroll enabled');
         }
     }
 
@@ -377,20 +431,11 @@
         }
     }
 
-    // サイズ切り替え
+    // 表示形式切り替え（チャットボットの開閉）
     function toggleSize() {
-        console.log('📏 Toggling size...');
-        const container = document.getElementById('chatbot-container');
-        
-        if (chatbot.currentSize === 'large') {
-            container.className = 'chatbot-container compact';
-            chatbot.currentSize = 'compact';
-            console.log('✅ Size changed to compact');
-        } else {
-            container.className = 'chatbot-container large';
-            chatbot.currentSize = 'large';
-            console.log('✅ Size changed to large');
-        }
+        console.log('📏 Toggling display mode...');
+        // Mobile対応箇所: サイズ変更ではなく、チャットボットを閉じる
+        toggleChatbot();
     }
 
     // ローディング状態設定

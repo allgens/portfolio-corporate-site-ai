@@ -195,6 +195,10 @@
     flex-direction: column;
     gap: 16px;
     scroll-behavior: smooth;
+    /* Mobile対応箇所: スクロール制御 */
+    -webkit-overflow-scrolling: touch !important;
+    overscroll-behavior: contain !important;
+    touch-action: pan-y !important;
 }
 
 .chatbot-messages::-webkit-scrollbar {
@@ -860,6 +864,9 @@
         /* Mobile対応箇所: モバイルでの確実な表示 */
         z-index: 9999 !important;
         box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3) !important;
+        /* Mobile対応箇所: スクロール制御 */
+        overflow: hidden !important;
+        touch-action: pan-y !important;
     }
     
     .chatbot-container.large {
