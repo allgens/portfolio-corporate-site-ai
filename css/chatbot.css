@@ -959,6 +959,9 @@
         /* Mobile対応箇所: 入力エリアの固定配置 */
         flex-shrink: 0 !important;
         min-height: 80px !important;
+        /* Mobile対応箇所: 送信ボタンとの重なり防止 */
+        position: relative !important;
+        z-index: 10 !important;
     }
     
     .chatbot-input {
@@ -992,6 +995,10 @@
         -webkit-tap-highlight-color: transparent !important;
         touch-action: manipulation !important;
         cursor: pointer !important;
+        /* Mobile対応箇所: 重なり防止 */
+        position: relative !important;
+        z-index: 11 !important;
+        flex-shrink: 0 !important;
     }
     
     .quick-actions {

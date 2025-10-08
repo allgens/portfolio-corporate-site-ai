@@ -16,7 +16,9 @@
         currentSize: 'compact',
         savedScrollY: 0,
         // Mobile対応箇所: デバッグ用の設定
-        debugMode: true
+        debugMode: true,
+        // Mobile対応箇所: クイックアクション表示状態
+        quickActionsVisible: true
     };
 
     // 初期化関数
@@ -49,11 +51,14 @@
                         </div>
                     </div>
                     <div class="chatbot-controls">
-                        <button class="chatbot-size-toggle" id="chatbot-size-toggle" title="チャットボットを閉じる">
-                            <i class="fas fa-times"></i>
+                        <button class="chatbot-control-btn" id="chatbot-quick-toggle" title="クイックアクション">
+                            <i class="fas fa-th-list"></i>
                         </button>
                         <button class="chatbot-control-btn" id="chatbot-restart" title="会話をリセット">
                             <i class="fas fa-redo"></i>
+                        </button>
+                        <button class="chatbot-size-toggle" id="chatbot-size-toggle" title="チャットボットを閉じる">
+                            <i class="fas fa-times"></i>
                         </button>
                     </div>
                 </div>
@@ -198,6 +203,33 @@
                 handleQuickAction(btn.dataset.action);
             });
         });
+
+        // クイックアクション表示/非表示ボタン
+        const quickToggle = document.getElementById('chatbot-quick-toggle');
+        if (quickToggle) {
+            quickToggle.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('📋 Quick actions toggle clicked');
+                toggleQuickActions();
+            });
+            
+            quickToggle.addEventListener('touchstart', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                quickToggle.style.opacity = '0.7';
+            });
+            
+            quickToggle.addEventListener('touchend', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                quickToggle.style.opacity = '1';
+                console.log('📋 Quick actions toggle touched');
+                toggleQuickActions();
+            });
+            
+            console.log('✅ Quick actions toggle events bound');
+        }
 
         // サイズ切り替えボタン
         const sizeToggle = document.getElementById('chatbot-size-toggle');
@@ -391,17 +423,9 @@
             console.error('❌ Error details:', error.message);
             hideTypingIndicator();
             
-            // Mobile対応箇所: より詳細なエラーメッセージ
-            let errorMessage = 'エラーが発生しました。しばらくしてから再度お試しください。';
-            if (error.message.includes('fetch')) {
-                errorMessage = 'ネットワークエラーが発生しました。インターネット接続を確認してください。';
-            } else if (error.message.includes('status: 500')) {
-                errorMessage = 'サーバーエラーが発生しました。管理者にお問い合わせください。';
-            } else if (error.message.includes('status: 404')) {
-                errorMessage = 'APIエンドポイントが見つかりません。ページを再読み込みしてください。';
-            }
-            
-            addMessage('assistant', errorMessage);
+            // Mobile対応箇所: フォールバック応答を生成
+            const fallbackResponse = generateFallbackResponse(message);
+            addMessage('assistant', fallbackResponse);
         })
         .finally(() => {
             chatbot.isLoading = false;
@@ -456,6 +480,27 @@
         if (message) {
             addMessage('user', message);
             sendMessage(message);
+        }
+    }
+
+    // クイックアクションの表示/非表示
+    function toggleQuickActions() {
+        console.log('📋 Toggling quick actions...');
+        chatbot.quickActionsVisible = !chatbot.quickActionsVisible;
+        const quickActions = document.getElementById('quick-actions');
+        const quickToggle = document.getElementById('chatbot-quick-toggle');
+        const icon = quickToggle.querySelector('i');
+        
+        if (chatbot.quickActionsVisible) {
+            quickActions.style.display = 'flex';
+            icon.className = 'fas fa-th-list';
+            quickToggle.title = 'クイックアクションを非表示';
+            console.log('✅ Quick actions shown');
+        } else {
+            quickActions.style.display = 'none';
+            icon.className = 'fas fa-th-list';
+            quickToggle.title = 'クイックアクションを表示';
+            console.log('✅ Quick actions hidden');
         }
     }
 
@@ -525,6 +570,91 @@
         
         // Mobile対応箇所: 接続テストを実行
         testConnection();
+    }
+
+    // フォールバック応答生成
+    function generateFallbackResponse(message) {
+        console.log('🔄 Generating fallback response for:', message);
+        
+        const messageLower = message.toLowerCase();
+        
+        // サービス関連の質問
+        if (messageLower.includes('サービス') || messageLower.includes('service')) {
+            return `**サービスについて**
+
+当社では以下のサービスを提供しています：
+
+• **システム開発**: Webアプリケーション、モバイルアプリの開発
+• **AI導入支援**: チャットボット、データ分析システムの構築
+• **ECマーケティング**: オンラインショップの運営支援
+• **システム運用**: サーバー管理、セキュリティ対策
+
+詳細については、お気軽にお問い合わせください。`;
+        }
+        
+        // 料金関連の質問
+        if (messageLower.includes('料金') || messageLower.includes('価格') || messageLower.includes('費用')) {
+            return `**料金について**
+
+料金はご要望に応じて個別にお見積もりいたします。
+
+• **初回相談**: 無料
+• **システム開発**: 規模により変動
+• **運用サポート**: 月額制プランあり
+
+具体的なご要望をお聞かせいただければ、詳細なお見積もりをご提示いたします。`;
+        }
+        
+        // 連絡先関連の質問
+        if (messageLower.includes('連絡') || messageLower.includes('連絡先') || messageLower.includes('電話')) {
+            return `**連絡先情報**
+
+📞 **電話**: 03-1234-5678  
+📧 **メール**: contact@example.com  
+🌐 **ウェブサイト**: https://example.com
+
+営業時間: 平日 9:00-18:00
+
+お気軽にお問い合わせください。`;
+        }
+        
+        // 使い方関連の質問
+        if (messageLower.includes('使い方') || messageLower.includes('使い方') || messageLower.includes('使用方法')) {
+            return `**使い方について**
+
+このチャットボットでは以下のことができます：
+
+• **サービスについて質問**: 「サービスについて教えて」
+• **料金について質問**: 「料金について教えて」
+• **連絡先を確認**: 「連絡先を教えて」
+• **その他の質問**: 自由にメッセージをお送りください
+
+クイックアクションボタンもご活用ください。`;
+        }
+        
+        // 代表者関連の質問
+        if (messageLower.includes('代表') || messageLower.includes('社長') || messageLower.includes('責任者')) {
+            return `**代表者について**
+
+代表取締役: 田中太郎
+
+経歴:
+• システムエンジニアとして10年の経験
+• AI技術の導入支援を専門とする
+• 多数の企業のDX推進をサポート
+
+詳細な経歴や実績については、お問い合わせください。`;
+        }
+        
+        // デフォルト応答
+        return `申し訳ございません。現在サーバーに接続できませんが、以下のようなご質問にお答えできます：
+
+• **サービスについて**: 「サービスについて教えて」
+• **料金について**: 「料金について教えて」  
+• **連絡先について**: 「連絡先を教えて」
+• **使い方について**: 「使い方を教えて」
+
+上記のキーワードを含めて再度お聞かせください。`;
     }
 
     // 接続テスト
