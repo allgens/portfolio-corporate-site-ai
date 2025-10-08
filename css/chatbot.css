@@ -647,6 +647,10 @@
     
     .chatbot-messages {
         padding: 16px;
+        /* Mobile対応箇所: メッセージエリアの高さ制限 */
+        max-height: 350px !important;
+        overflow-y: auto !important;
+        flex: 1 !important;
     }
     
     .chatbot-input-area {
@@ -852,8 +856,8 @@
         /* Mobile対応箇所: モバイルでのコンパクトサイズを最適化 */
         max-width: 350px;
         width: 90vw;
-        height: 520px;
-        max-height: 80vh;
+        height: 600px;
+        max-height: 85vh;
         position: fixed;
         bottom: 20px;
         right: 20px;
@@ -867,6 +871,9 @@
         /* Mobile対応箇所: スクロール制御 */
         overflow: hidden !important;
         touch-action: pan-y !important;
+        /* Mobile対応箇所: フレックスレイアウトで確実な配置 */
+        display: flex !important;
+        flex-direction: column !important;
     }
     
     .chatbot-container.large {
@@ -949,6 +956,9 @@
         align-items: center !important;
         background: white !important;
         border-top: 1px solid #E2E8F0 !important;
+        /* Mobile対応箇所: 入力エリアの固定配置 */
+        flex-shrink: 0 !important;
+        min-height: 80px !important;
     }
     
     .chatbot-input {
@@ -990,6 +1000,10 @@
         /* Mobile対応箇所: モバイルでは縦並びに変更 */
         flex-direction: column !important;
         display: flex !important;
+        /* Mobile対応箇所: クイックアクションエリアの固定配置 */
+        flex-shrink: 0 !important;
+        background: white !important;
+        border-top: 1px solid #E2E8F0 !important;
     }
     
     .quick-action-btn {

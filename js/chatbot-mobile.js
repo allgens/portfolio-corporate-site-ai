@@ -14,7 +14,9 @@
         storageKey: 'chatbot_messages',
         sizeStorageKey: 'chatbot_size',
         currentSize: 'compact',
-        savedScrollY: 0
+        savedScrollY: 0,
+        // Mobile対応箇所: デバッグ用の設定
+        debugMode: true
     };
 
     // 初期化関数
@@ -349,6 +351,9 @@
         showTypingIndicator();
 
         // API呼び出し
+        console.log('📡 API Request to:', chatbot.apiEndpoint);
+        console.log('📤 Request data:', { message, messages: chatbot.messages });
+        
         fetch(chatbot.apiEndpoint, {
             method: 'POST',
             headers: {
@@ -359,21 +364,44 @@
                 messages: chatbot.messages
             })
         })
-        .then(response => response.json())
+        .then(response => {
+            console.log('📨 Response status:', response.status);
+            console.log('📨 Response headers:', response.headers);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            return response.json();
+        })
         .then(data => {
             console.log('📨 API Response:', data);
             hideTypingIndicator();
             
             if (data.response) {
                 addMessage('assistant', data.response);
+            } else if (data.error) {
+                addMessage('assistant', `エラー: ${data.error}`);
             } else {
                 addMessage('assistant', '申し訳ございません。現在サーバーに接続できません。');
             }
         })
         .catch(error => {
             console.error('❌ API Error:', error);
+            console.error('❌ Error details:', error.message);
             hideTypingIndicator();
-            addMessage('assistant', 'エラーが発生しました。しばらくしてから再度お試しください。');
+            
+            // Mobile対応箇所: より詳細なエラーメッセージ
+            let errorMessage = 'エラーが発生しました。しばらくしてから再度お試しください。';
+            if (error.message.includes('fetch')) {
+                errorMessage = 'ネットワークエラーが発生しました。インターネット接続を確認してください。';
+            } else if (error.message.includes('status: 500')) {
+                errorMessage = 'サーバーエラーが発生しました。管理者にお問い合わせください。';
+            } else if (error.message.includes('status: 404')) {
+                errorMessage = 'APIエンドポイントが見つかりません。ページを再読み込みしてください。';
+            }
+            
+            addMessage('assistant', errorMessage);
         })
         .finally(() => {
             chatbot.isLoading = false;
@@ -494,6 +522,36 @@
 何かお手伝いできることはありますか？以下のクイックアクションからお選びいただくか、自由にメッセージをお送りください。`;
         
         addMessage('assistant', welcomeMessage);
+        
+        // Mobile対応箇所: 接続テストを実行
+        testConnection();
+    }
+
+    // 接続テスト
+    function testConnection() {
+        console.log('🔍 Testing API connection...');
+        
+        fetch(chatbot.apiEndpoint, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                message: 'test',
+                messages: []
+            })
+        })
+        .then(response => {
+            console.log('🔍 Connection test response status:', response.status);
+            if (response.ok) {
+                console.log('✅ API connection successful');
+            } else {
+                console.warn('⚠️ API connection failed with status:', response.status);
+            }
+        })
+        .catch(error => {
+            console.error('❌ Connection test failed:', error);
+        });
     }
 
     // ページ読み込み完了後に初期化
